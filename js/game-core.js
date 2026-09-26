@@ -81,7 +81,7 @@
      Party and monster positions live in the game state and advance on the very same
      clock as the combat maths, so what is drawn and what is counted can never drift
      apart. Walking, pathfinding, aggro and engagement all live in here. */
-  const FIELD={walk:26,aggro:16,leash:34,heroRange:5.6,foeRange:3.4,repath:.5,home:.6};
+  const FIELD={walk:26,aggro:16,leash:34,heroRange:5.6,foeRange:3.4,repath:.5,home:.6,gap:2.6};
   /* Only the arena matters: advancing a stage inside the same zone must not send the
      party back to the castle. */
   const fieldKey=s=>s.hunting.zone+':'+s.hunting.mode;
@@ -118,15 +118,60 @@
     }
     return [];
   }
+  /* World-scale A* hands back a grid walk; simplify and re-verify it the same way the
+     published routes are built, so a mid-march replan looks like the original route. */
+  const worldPath=(from,to)=>W.smoothPath(W.findPath(from,to));
+  /* The single rule for "may this actor take one more step to [x,z]": the world map has
+     to accept the step and, inside an arena, the arena layout has to accept it too. */
+  function stepOk(walker,from,to){
+    if(!W.validStep(from,to))return false;
+    if(walker&&walker.walkable(from[0],from[1])&&!walker.walkable(to[0],to[1]))return false;
+    return true;
+  }
+  /* Members walk one shared route, so without this they would stand inside each other.
+     Spacing is part of the game data: the saved coordinates are nudged apart, only in
+     directions the map allows, and the monster keeps a hard exclusion radius. */
+  function settleParty(f,walker,ids){
+    const gap=FIELD.gap,foeGap=FIELD.heroRange*.62,living=f.party.filter(m=>ids.has(m.id));
+    for(let pass=0;pass<4;pass++){
+      let moved=false;
+      for(let a=0;a<living.length;a++)for(let b=a+1;b<living.length;b++){
+        const ma=living[a],mb=living[b];
+        let dx=mb.x-ma.x,dz=mb.z-ma.z,d=Math.hypot(dx,dz);
+        if(d>=gap)continue;
+        if(d<1e-6){const g=2.399963229728653*(b+1);dx=Math.cos(g);dz=Math.sin(g);d=1;}
+        const ux=dx/d,uz=dz/d,push=(gap-d)/2;
+        const ax=ma.x-ux*push,az=ma.z-uz*push,bx=mb.x+ux*push,bz=mb.z+uz*push;
+        if(stepOk(walker,[ma.x,ma.z],[ax,az])){ma.x=ax;ma.z=az;moved=true;}
+        if(stepOk(walker,[mb.x,mb.z],[bx,bz])){mb.x=bx;mb.z=bz;moved=true;}
+      }
+      for(const m of living){
+        const dx=m.x-f.foe.x,dz=m.z-f.foe.z,d=Math.hypot(dx,dz);
+        if(d<=1e-6||d>=foeGap)continue;
+        m.x=f.foe.x+dx/d*foeGap;m.z=f.foe.z+dz/d*foeGap;moved=true;
+      }
+      if(!moved)break;
+    }
+  }
+  /* The monster is not a grid node: snap its live position to the closest standable cell
+     so a chasing member has a legal A* target. */
+  function nearestStandable(walker,x,z){
+    if(walker.walkable(x,z))return[x,z];
+    for(let r=1;r<=6;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){
+      if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;
+      if(walker.walkable(x+dx,z+dz))return[x+dx,z+dz];
+    }
+    return null;
+  }
   function walkAlong(entity,step,walker){
     let move=step,replanned=false;
     while(move>1e-6&&entity.pi<entity.path.length){
       const t=entity.path[entity.pi],dx=t[0]-entity.x,dz=t[1]-entity.z,d=Math.hypot(dx,dz);
       if(d<1e-6){entity.pi++;continue;}
       const distance=Math.min(move,d,.7),next=[entity.x+dx/d*distance,entity.z+dz/d*distance];
-      if(!W.validStep([entity.x,entity.z],next)||walker&&walker.walkable(entity.x,entity.z)&&!walker.walkable(next[0],next[1])){
+      if(!stepOk(walker,[entity.x,entity.z],next)){
         const inside=walker&&walker.walkable(entity.x,entity.z)&&walker.walkable(t[0],t[1]);
-        const route=inside?findPath(walker,[entity.x,entity.z],t):W.findPath([entity.x,entity.z],t);
+        const route=inside?findPath(walker,[entity.x,entity.z],t):worldPath([entity.x,entity.z],t);
         if(route.length&&!replanned){entity.path.splice(entity.pi,1,...route);replanned=true;continue;}
         entity.path=[];entity.pi=0;return false;
       }
@@ -174,8 +219,8 @@
     const gate=walker.toWorld(walker.layout.gate[0],walker.layout.gate[1]);
     for(const m of f.party){
       const inside=walker.walkable(m.x,m.z);
-      const out=inside?findPath(walker,[m.x,m.z],gate):W.findPath([m.x,m.z],gate);
-      m.path=toGate?out:out.concat(W.findPath(gate,W.castle.spawn));
+      const out=inside?findPath(walker,[m.x,m.z],gate):worldPath([m.x,m.z],gate);
+      m.path=toGate?out:out.concat(worldPath(gate,W.castle.spawn));
       m.pi=0;
     }
     f.phase='back';f.retreat=toGate?'gate':'home';f.foe.aggro=false;f.foe.path=[];f.foe.pi=0;
@@ -193,10 +238,16 @@
       if(h.active&&Math.hypot(m.x-f.foe.x,m.z-f.foe.z)<=FIELD.heroRange*.85){m.pi=m.path.length;continue;}
       const attempted=h.active&&walkDone(m)&&!m.retry;
       if(attempted){
-        const goal=walker.toWorld(walker.layout.slots[m.slot][0],walker.layout.slots[m.slot][1]);
-        const at=walker.walkable(m.x,m.z)?[]:W.findPath([m.x,m.z],walker.toWorld(...walker.layout.gate));
+        // Standing on the scripted slot is not enough: the monster walks away from its
+        // home, so a member that has finished its route still has to close the last gap
+        // instead of waiting out the whole fight out of reach.
+        const chasing=Math.hypot(m.x-f.foe.x,m.z-f.foe.z)>FIELD.heroRange;
+        const goal=(chasing?nearestStandable(walker,f.foe.x,f.foe.z):null)
+          ||walker.toWorld(walker.layout.slots[m.slot][0],walker.layout.slots[m.slot][1]);
+        const at=walker.walkable(m.x,m.z)?[]:worldPath([m.x,m.z],walker.toWorld(...walker.layout.gate));
         m.path=at.concat(findPath(walker,at.length?at[at.length-1]:[m.x,m.z],goal));m.pi=0;
-        if(!m.path.length)m.retry=1;
+        if(chasing)m.retry=FIELD.repath;
+        else if(!m.path.length)m.retry=1;
       }
       const before=[m.x,m.z],valid=walkAlong(m,step,walker);
       if(h.active&&!m.path.length&&(!valid||Math.hypot(m.x-f.foe.x,m.z-f.foe.z)>FIELD.heroRange)){
@@ -227,14 +278,9 @@
       // Never let the last step carry it inside the reach it was closing to.
       if(chase){const d=Math.hypot(f.foe.x-chase.x,f.foe.z-chase.z);if(d>1e-6&&d<stop){f.foe.x=chase.x+(f.foe.x-chase.x)/d*stop;f.foe.z=chase.z+(f.foe.z-chase.z)/d*stop;}}
     }else{f.foe.path=[];f.foe.pi=0;}
-    // Once both sides have moved, keep a shoulder's width of space so nobody ends up
-    // standing inside the monster.
-    const minGap=FIELD.heroRange*.62;
-    for(const m of f.party){
-      if(!ids.has(m.id))continue;
-      const dx=m.x-f.foe.x,dz=m.z-f.foe.z,d=Math.hypot(dx,dz);
-      if(d>1e-6&&d<minGap){m.x=f.foe.x+dx/d*minGap;m.z=f.foe.z+dz/d*minGap;}
-    }
+    // Once both sides have moved, settle the formation: members keep a shoulder's width
+    // from each other and a hard exclusion radius around the monster.
+    settleParty(f,walker,ids);
     if(f.phase==='out'&&f.party.every(m=>!ids.has(m.id)||walkDone(m)))f.phase='fight';
   }
   /* Distance from every party member to the monster, or null when nothing is on the field. */

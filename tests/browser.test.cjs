@@ -416,6 +416,21 @@ test('open world: ten biome zones share one map and combat never swaps the scene
   assert.ok(setOut&&setOut.phase==='out','the game state puts the party on the march');
   assert.ok(setOut.party.length>=1,'the field carries the party');
   assert.ok(setOut.party.every(m=>m.path>5),'every member has a real waypoint route');
+  // Spacing is applied on the game clock, and in software WebGL that clock only moves
+  // with animation frames, so wait for the state instead of for a duration.
+  if(setOut.party.length>=2){
+    await page.waitForFunction(()=>{
+      const f=globalThis.GameApp.getWorldStats().field;
+      if(!f||f.party.length<2)return true;
+      for(let a=0;a<f.party.length;a++)for(let b=a+1;b<f.party.length;b++){
+        if(Math.hypot(f.party[a].x-f.party[b].x,f.party[a].z-f.party[b].z)<1)return false;
+      }
+      return true;
+    },null,{timeout:120000,polling:100});
+    const marched=await page.evaluate(()=>globalThis.GameApp.getWorldStats().field.party.map(m=>[m.x,m.z]));
+    const marchGaps=marched.flatMap((m,i)=>marched.slice(i+1).map(n=>Math.hypot(m[0]-n[0],m[1]-n[1])));
+    assert.ok(Math.min(...marchGaps)>1,'members march apart instead of standing on one point');
+  }
 
   const zone1=base.map.positions[0];
   const closest=()=>page.evaluate(z=>{
@@ -451,6 +466,8 @@ test('open world: ten biome zones share one map and combat never swaps the scene
   assert.ok(fighting,'the party never closed on the monster inside the zone');
   const front=fighting.front;
   assert.ok(front.length>=1,'the party holds its melee slots inside the zone');
+  const meleeGaps=front.flatMap((p,i)=>front.slice(i+1).map(q=>Math.hypot(p[0]-q[0],p[1]-q[1])));
+  if(meleeGaps.length)assert.ok(Math.min(...meleeGaps)>1,'the party fights fanned out, not stacked on one point');
   for(const p of front)assert.ok(Math.hypot(p[0]-zone1[0],p[1]-zone1[1])<16,`melee slot ${p} is inside zone 1`);
   assert.ok(fighting.aggro,'the monster aggroed and came out to meet the party');
   const enemy=fighting.foe;

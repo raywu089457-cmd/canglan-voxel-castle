@@ -523,6 +523,14 @@
     const raw = join(legs);
     return traceOk(raw) ? raw : simplified;
   }
+  /* Runtime callers get the same treatment as the published routes: simplify first,
+     then verify the simplification at 1-unit sampling, and fall back to the raw A*
+     result when the shortcut turns out not to be walkable. */
+  function smoothPath(points) {
+    if (!points || points.length < 3) return points || [];
+    const tidy = rdp(points, 1.2);
+    return traceOk(tidy) ? tidy : points;
+  }
   function routeTo(index) {
     const zn = zones[index - 1];
     if (!zn) return null;
@@ -552,7 +560,7 @@
     castle: { plateau: PLATEAU, moat: MOAT, clear: CLEAR, outer: OUTER, inner: INNER, gate: GATE, spawn: SPAWN, junction: JUNCTION },
     zones, biomes, props, road: causeway, loop,
     coastRadius, isLand, height, surface, biomeAt, blocked, walkable,
-    validStep, findPath, routeTo, routeBetween
+    validStep, findPath, smoothPath, routeTo, routeBetween
   };
   g.WorldMap = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
