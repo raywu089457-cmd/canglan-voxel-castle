@@ -1,0 +1,252 @@
+{
+ "generatedAt": "2026-09-25T13:28:51.670Z",
+ "seed": 94721,
+ "totals": {
+  "families": 27,
+  "ok": 27,
+  "failing": 0
+ },
+ "rows": [
+  {
+   "contentId": "buildings",
+   "required": 10,
+   "delivered": 10,
+   "ok": true,
+   "detail": "castle、tavern、training、forge、potion、warehouse、gem、market、library、altar"
+  },
+  {
+   "contentId": "zones",
+   "required": 10,
+   "delivered": 10,
+   "ok": true,
+   "detail": "翠綠草原、幽暗森林、灰燼洞穴、烈焰火山、冰封高原、黃沙荒漠、詛咒沼澤、蒼穹之塔、深淵裂谷、神話之域"
+  },
+  {
+   "contentId": "zoneMonsters",
+   "required": 50,
+   "delivered": 50,
+   "ok": true,
+   "detail": "5 per region"
+  },
+  {
+   "contentId": "zoneBosses",
+   "required": 10,
+   "delivered": 10,
+   "ok": true,
+   "detail": "1 per region"
+  },
+  {
+   "contentId": "classes",
+   "required": 6,
+   "delivered": 6,
+   "ok": true,
+   "detail": "劍士、弓手、法師、刺客、騎士、牧師"
+  },
+  {
+   "contentId": "legends",
+   "required": 8,
+   "delivered": 8,
+   "ok": true,
+   "detail": "艾拉·晨星、雷恩·颶風、莫娜·灰燼、薇拉·影刃、奧丁·冰壁、瑟琳·聖歌、索林·岩心、妮克絲·夜幕"
+  },
+  {
+   "contentId": "visitorTypes",
+   "required": 18,
+   "delivered": 18,
+   "ok": true,
+   "detail": "18 generated visitor identities"
+  },
+  {
+   "contentId": "skills",
+   "required": 18,
+   "delivered": 18,
+   "ok": true,
+   "detail": "3 per class"
+  },
+  {
+   "contentId": "equipSlots",
+   "required": 7,
+   "delivered": 7,
+   "ok": true,
+   "detail": "武器、頭盔、鎧甲、靴子、項鍊、戒指、護符"
+  },
+  {
+   "contentId": "equipTiers",
+   "required": 10,
+   "delivered": 10,
+   "ok": true,
+   "detail": "tier 1-10"
+  },
+  {
+   "contentId": "rarities",
+   "required": 6,
+   "delivered": 6,
+   "ok": true,
+   "detail": "普通、高級、稀有、史詩、傳說、神話"
+  },
+  {
+   "contentId": "sets",
+   "required": 6,
+   "delivered": 6,
+   "ok": true,
+   "detail": "獵狼、熔岩、冰霜、龍鱗、獵風、不死鳥"
+  },
+  {
+   "contentId": "recipes",
+   "required": 13,
+   "delivered": 13,
+   "ok": true,
+   "detail": "13 forge recipes"
+  },
+  {
+   "contentId": "gemTypes",
+   "required": 4,
+   "delivered": 4,
+   "ok": true,
+   "detail": "紅寶石、藍寶石、綠寶石、黃寶石"
+  },
+  {
+   "contentId": "gemTiers",
+   "required": 10,
+   "delivered": 10,
+   "ok": true,
+   "detail": "tier 1-10, fusion capped at 10"
+  },
+  {
+   "contentId": "materials",
+   "required": 9,
+   "delivered": 9,
+   "ok": true,
+   "detail": "鐵礦石、藥草、獸皮、魔水晶、餘燼石、寒霜晶、毒囊、虛空碎片、神話殘片"
+  },
+  {
+   "contentId": "artifacts",
+   "required": 11,
+   "delivered": 11,
+   "ok": true,
+   "detail": "龍鱗護符、雷神之錘、影舞之靴、冰霜之心、嗜血獠牙、賢者之瞳、貪婪錢袋、聖光徽記、深淵之瞳、虛空行者、深淵之心"
+  },
+  {
+   "contentId": "affixes",
+   "required": 8,
+   "delivered": 8,
+   "ok": true,
+   "detail": "嗜血、獵手、鋒銳、荊棘、鐵壁、學者、貪婪、尋寶"
+  },
+  {
+   "contentId": "breakthroughs",
+   "required": 5,
+   "delivered": 5,
+   "ok": true,
+   "detail": "Lv10、Lv25、Lv50、Lv100、Lv150"
+  },
+  {
+   "contentId": "traditions",
+   "required": 5,
+   "delivered": 5,
+   "ok": true,
+   "detail": "狩獵、鍛造、商會、學術、開拓"
+  },
+  {
+   "contentId": "difficulties",
+   "required": 4,
+   "delivered": 4,
+   "ok": true,
+   "detail": "普通、困難、地獄、夢魘"
+  },
+  {
+   "contentId": "mainline",
+   "required": 31,
+   "delivered": 31,
+   "ok": true,
+   "detail": "31 main quests"
+  },
+  {
+   "contentId": "daily",
+   "required": 10,
+   "delivered": 10,
+   "ok": true,
+   "detail": "10 daily tasks"
+  },
+  {
+   "contentId": "weekly",
+   "required": 8,
+   "delivered": 8,
+   "ok": true,
+   "detail": "8 weekly goals"
+  },
+  {
+   "contentId": "achievements",
+   "required": 45,
+   "delivered": 45,
+   "ok": true,
+   "detail": "45 achievements"
+  },
+  {
+   "contentId": "tutorial",
+   "required": 1,
+   "delivered": 7,
+   "ok": true,
+   "detail": "7 tutorial steps"
+  },
+  {
+   "contentId": "longTermModes",
+   "required": 10,
+   "delivered": 14,
+   "ok": true,
+   "detail": "14 surfaces checked; missing: none"
+  }
+ ],
+ "modeEvidence": {
+  "dungeon": true,
+  "arena": true,
+  "king": true,
+  "labyrinth": true,
+  "commission": true,
+  "guildBoss": true,
+  "worldBoss": true,
+  "tower": true,
+  "abyss": true,
+  "event": true,
+  "signin": true,
+  "chest": true,
+  "artefacts": true,
+  "resonance": true
+ },
+ "runtime": {
+  "buildings": [
+   "castle",
+   "tavern",
+   "training",
+   "forge",
+   "potion",
+   "warehouse",
+   "gem",
+   "market",
+   "library",
+   "altar"
+  ],
+  "challengeModes": 9,
+  "challengeNames": [
+   "黃金秘境",
+   "智慧秘境",
+   "豐饒秘境",
+   "十人競技場",
+   "三隊王者競技",
+   "奇境迷宮",
+   "公會首領",
+   "世界首領",
+   "元素挑戰塔"
+  ],
+  "shops": 52,
+  "collections": 28,
+  "milestones": 28,
+  "arenaOpponents": 10,
+  "labyrinthNodes": 12,
+  "towerFloors": 15,
+  "artifactEntries": 11,
+  "resonanceSlots": 5,
+  "guildTechRows": 12,
+  "wandererTypes": 18
+ }
+}

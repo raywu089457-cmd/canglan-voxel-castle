@@ -1,0 +1,12 @@
+{
+  "name": "canglan-voxel-castle",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deterministic voxel castle idle RPG with an offline local save.",
+  "scripts": {
+    "start": "node server.cjs",
+    "test": "node --test tests/core.test.cjs tests/extensions.test.cjs",
+    "test:browser": "node --test tests/browser.test.cjs",
+    "test:all": "node --test --test-concurrency=1 tests/core.test.cjs tests/extensions.test.cjs tests/browser.test.cjs"
+  }
+}
