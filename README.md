@@ -89,4 +89,4 @@ node tools/content-audit.cjs
 
 ## 素材與授權
 
-城堡、地形、角色、圖示及合成聲音為本次實作的程序生成內容。3D 使用隨包提供的 Three.js r160，授權見 [THREE-LICENSE.txt](vendor/THREE-LICENSE.txt)。字型使用裝置的系統字型；遊戲執行時無需下載外部美術或音樂素材。
+城堡、地形、角色、圖示及合成聲音為本次實作的程序生成內容；介面與圖示使用暖色色盤（羊皮紙、木框、森林綠、金），對照表在 `tools/warm-theme.cjs`。3D 使用隨包提供的 Three.js r160，授權見 [THREE-LICENSE.txt](vendor/THREE-LICENSE.txt)。字型使用裝置的系統字型；遊戲執行時無需下載外部美術或音樂素材。

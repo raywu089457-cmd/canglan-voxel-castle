@@ -1,6 +1,7 @@
 /* Original voxel icons, rendered locally from the castle's stone / oak / copper palette. */
 (function(g){'use strict';
-const cache=new Map(),P={stone:'#9daca0',light:'#c3cbb1',dark:'#526c68',wood:'#846246',roof:'#47756a',gold:'#cba255',skin:'#d5ac7d',iron:'#839599',red:'#ad6150',blue:'#678ca2',green:'#6c925d',purple:'#8c769a'};
+/* 暖色色盤：羊皮紙／木頭／森林綠／金，對應 style.css 的主題。 */
+const cache=new Map(),P={stone:'#b9a98a',light:'#ddcba4',dark:'#6b5a3c',wood:'#8a5f33',roof:'#9a6a3a',gold:'#cd8c2f',skin:'#dcb387',iron:'#a89a86',red:'#a4562f',blue:'#5f8ba3',green:'#5f8a45',purple:'#9a7392'};
 function shade(hex,m){return '#'+hex.slice(1).match(/../g).map(v=>Math.min(255,Math.max(0,Math.round(parseInt(v,16)*m))).toString(16).padStart(2,'0')).join('');}
 function icon(id,variant=''){
 const key=id+':'+variant;if(cache.has(key))return cache.get(key);
