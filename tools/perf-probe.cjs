@@ -18,7 +18,7 @@ const BASE = 'http://127.0.0.1:' + PORT;
 const HEADED = process.argv.includes('--headed');
 const PROFILES = [
   { name: '桌機 1440×900', width: 1440, height: 900, dpr: 1, touch: false, throttle: [1, 4] },
-  { name: '手機 390×844', width: 390, height: 844, dpr: 3, touch: true, throttle: [1, 4, 6] },
+  { name: '手機 390×844', width: 390, height: 844, dpr: 3, touch: true, throttle: [1, 4, 6], quality: ['low', 'auto', 'high'] },
   { name: '小手機 320×568', width: 320, height: 568, dpr: 2, touch: true, throttle: [1, 6] }
 ];
 
@@ -66,6 +66,7 @@ async function measure(page, cdp, seconds, label) {
     p50: p(.5), p95: p(.95),
     script: scriptMs / n, style: styleMs / n, layout: layoutMs / n,
     calls: stats.drawCalls, tris: stats.triangles, geo: stats.geometries, tex: stats.textures,
+    ratio: stats.pixelRatio, shadowSize: stats.shadows ? stats.shadowSize : 0,
     blocks: stats.blocks, worldBlocks: stats.worldBlocks, batches: stats.batches, actors: stats.actors
   };
 }
@@ -92,6 +93,13 @@ async function measure(page, cdp, seconds, label) {
       await page.waitForTimeout(1500);
       const cdp = await context.newCDPSession(page);
       await cdp.send('Performance.enable');
+      for (const quality of (profile.quality || [])) {
+        await page.evaluate(q => globalThis.GameApp.world().setQuality(q), quality);
+        await page.waitForTimeout(800);
+        const r = await measure(page, cdp, 4, '畫質 ' + quality);
+        rows.push({ profile: profile.name + ' ' + quality, ...r });
+        console.log(`${(profile.name + ' · 畫質' + quality).padEnd(20)} fps ${r.fps.toFixed(1).padStart(6)} | frame p50 ${r.p50.toFixed(1).padStart(6)}ms | draw ${String(r.calls).padStart(4)} | 三角 ${(r.tris / 1000).toFixed(0).padStart(5)}k | pixelRatio ${r.ratio} 陰影 ${r.shadowSize || '關'}`);
+      }
       for (const rate of profile.throttle) {
         await cdp.send('Emulation.setCPUThrottlingRate', { rate });
         const r = await measure(page, cdp, 6, `CPU ×${rate}`);

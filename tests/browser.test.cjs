@@ -483,4 +483,14 @@ test('open world: ten biome zones share one map and combat never swaps the scene
   }
   assert.equal(fighting.worldBlocks,base.worldBlocks,'fighting did not swap the scene');
   assert.ok(fighting.drawCalls<=400,`draw calls bounded (${fighting.drawCalls})`);
+
+  // 畫質設定：低畫質真的關陰影並降解析度，高畫質拉回來
+  const low=await page.evaluate(()=>{globalThis.GameApp.world().setQuality('low');return globalThis.GameApp.getWorldStats();});
+  assert.equal(low.shadows,false,'低畫質關閉陰影');
+  assert.ok(low.pixelRatio<=1.01,`低畫質 pixel ratio 降到 1（${low.pixelRatio}）`);
+  const high=await page.evaluate(()=>{globalThis.GameApp.world().setQuality('high');return globalThis.GameApp.getWorldStats();});
+  assert.equal(high.shadows,true,'高畫質開啟陰影');
+  assert.ok(high.shadowSize>=2048,`高畫質把陰影拉到 2048（${high.shadowSize}）`);
+  assert.ok(high.pixelRatio>=low.pixelRatio,`高畫質的 pixel ratio 不低於低畫質（${low.pixelRatio} → ${high.pixelRatio}）`);
+  await page.evaluate(()=>globalThis.GameApp.world().setQuality('auto'));
 }));

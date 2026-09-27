@@ -158,6 +158,7 @@ Chrome 在 `C:/Program Files/Google/Chrome/Application/chrome.exe`（設定在 `
 - 在允許啟動 Chrome 的環境執行 `npm run test:browser`，重新產生桌面／手機截圖。
 - ~~實機量測 draw calls 與 frame time~~ 2026-09-26 已用 `node tools/perf-probe.cjs --headed`（真 GPU）量過：桌機 28／手機 23／小手機 25 draw calls、453～503k 三角形、每帧 JS 0.25～0.3ms（CPU ×6 降速 1.5～1.6ms）；**真機 GPU 仍未量**。
 - 手機補算上限已修（每帧最多 1.5 秒），舊版會凍 0.26～8 秒。
+- 畫質設定已加（設定 → 畫質：自動／高／低），低畫質 pixel ratio 1、關陰影；真機仍未驗。
 - 若要支援不同世界種子，需把 `world-map.js` 的固定 `SEED_TEXT` 參數化，並加入不同 seed 的指紋驗收。
 - 可選：補齊藤蔓、枯木、巨石、鐘乳石等群系專屬裝飾；目前已有樹、仙人掌、巨型蘑菇、尖塔、柱、熔岩池與水潭。
 
