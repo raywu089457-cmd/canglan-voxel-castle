@@ -247,18 +247,26 @@ function applyPrefs(){document.body.classList.toggle('reduce-motion',!!prefs.red
 function selectedWorld(item){if(item.kind==='building'){page='building';selectedBuilding=item.id;}else if(item.kind==='hero'){if(item.visitor)page='wanderers';else {page='heroes';selectedHero=item.id;}}else if(item.kind==='zone'){if(Number(item.id)>state.progress.maxZone){toast('需先通過前一區首領',false);return;}act('target',{zone:Number(item.id),stage:1});go('hunt');return;}else if(item.kind==='abyss'){page='challenges';}else if(item.kind==='challenge'){const routes={commission:'expeditions',guild:'guild',quests:'quests',collections:'collections'};page=routes[item.id]||'challenges';}render(true);}
 try{world=g.GameWorld.create({canvas:$('#world'),onSelect:selectedWorld,onError:message=>{const el=$('#world-message');el.hidden=false;el.textContent='3D 場景無法啟動：'+message+'。仍可透過選單進行遊戲。';}});syncWorld();applyPrefs();$('#world-message').hidden=true;}catch(error){console.error(error);$('#world-message').textContent='3D 場景未能啟動。可以繼續使用右側選單。';}
 document.querySelectorAll('[data-icon]').forEach(el=>{el.src=I.icon(el.dataset.icon);});
-let lastTime=performance.now(),lastReal=Date.now();
-function frame(now){if(destroyed)return;const real=Date.now(),elapsed=Math.max(0,(real-lastReal)/1000);lastReal=real;
-if(!document.hidden){if(elapsed>90){const report=C.offline(state,real);if(report?.seconds)toast('歡迎回來，離線收穫已結算。');}else if(elapsed>0)C.tick(state,elapsed,real);
-if(prefs.lightCycle&&!prefs.reduced){prefs.hour=(Number(prefs.hour)+Math.min(elapsed,1)/25)%24;world?.setHour(prefs.hour);}
-if(now-lastWorld>160){syncWorld();lastWorld=now;}
-if(now-lastHud>350){render();lastHud=now;}
-if(now-lastSave>5000){save();lastSave=now;}ambient(now);}
-lastTime=now;raf=requestAnimationFrame(frame);}
-document.addEventListener('visibilitychange',()=>{if(document.hidden){save();audioContext?.suspend();}else{const seconds=(Date.now()-state.lastSeen)/1000;if(seconds>2){const summary=C.offline(state,Date.now());if(seconds>90)toast('歡迎回來！已結算 '+duration(seconds)+' 的離線進度。');save();dirty=true;}lastReal=Date.now();if(prefs.music)audioContext?.resume();}});
+let lastTime=performance.now(),lastReal=Date.now(),simAt=Date.now();
+/* 每一幀最多補算多少遊戲秒。畫面卡住、手機切回來或長背景停頓之後，剩下的
+   帳留給接下來的影格分次還，不會讓單一影格背整段補算（那正是手機上會凍住的
+   地方：補 60 秒約 0.26s、補 5 分鐘約 1s，CPU 降速後更久）。切分只是換一次
+   算多少步，與固定步長模擬等價（tests/core.test.cjs 有驗）。 */
+const CATCHUP_PER_FRAME=1.5;
+function frame(now){if(destroyed)return;const real=Date.now();
+if(!document.hidden){
+  const debt=(real-simAt)/1000;
+  if(debt>90){const report=C.offline(state,real);if(report?.seconds)toast('歡迎回來，離線收穫已結算。');simAt=real;}
+  else if(debt>0){const part=Math.min(debt,CATCHUP_PER_FRAME),at=simAt+part*1000;C.tick(state,part,at);simAt=at;}
+  if(prefs.lightCycle&&!prefs.reduced){prefs.hour=(Number(prefs.hour)+Math.min(Math.max(0,real-lastReal)/1000,1)/25)%24;world?.setHour(prefs.hour);}
+  if(now-lastWorld>160){syncWorld();lastWorld=now;}
+  if(now-lastHud>350){render();lastHud=now;}
+  if(now-lastSave>5000){save();lastSave=now;}ambient(now);}
+lastReal=real;lastTime=now;raf=requestAnimationFrame(frame);}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){save();audioContext?.suspend();}else{const seconds=(Date.now()-state.lastSeen)/1000;if(seconds>2){const summary=C.offline(state,Date.now());if(seconds>90)toast('歡迎回來！已結算 '+duration(seconds)+' 的離線進度。');save();dirty=true;}lastReal=Date.now();simAt=Date.now();if(prefs.music)audioContext?.resume();}});
 window.addEventListener('pagehide',()=>save());
 render(true);raf=requestAnimationFrame(frame);
 if(saveProblem)toast(saveProblem,false);else if(offlineSummary?.seconds>90)toast('歡迎回來！離線收穫已入帳。');
 g.GameApp={snapshot:()=>JSON.parse(JSON.stringify(state)),getWorldStats:()=>world?.getStats(),navigate:go,dispose(){destroyed=true;cancelAnimationFrame(raf);world?.dispose();audioContext?.close();}};
-if(new URLSearchParams(location.search).has('test'))Object.assign(g.GameApp,{dispatch:act,replaceState(next){const v=C.validate(next);if(!v.ok)throw Error(v.message);state=structuredClone(next);E.init(state);syncWorld();render(true);},advance(seconds){C.tick(state,seconds,state.lastSeen+seconds*1000);syncWorld();render(true);},world:()=>world});
+if(new URLSearchParams(location.search).has('test'))Object.assign(g.GameApp,{dispatch:act,replaceState(next){const v=C.validate(next);if(!v.ok)throw Error(v.message);state=structuredClone(next);E.init(state);syncWorld();render(true);},advance(seconds){C.tick(state,seconds,state.lastSeen+seconds*1000);syncWorld();render(true);},/* 模擬「畫面卡住/切回前景」：把已模擬時間往回撥，觀察下一帧實際支出多少。 */stall(seconds){simAt-=seconds*1000;},pending(){return (Date.now()-simAt)/1000;},world:()=>world});
 })(globalThis);

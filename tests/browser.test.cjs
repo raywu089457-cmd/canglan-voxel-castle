@@ -299,6 +299,10 @@ test('responsive layouts 1440/768/390/320 keep the game usable without overflow'
   const problems=[];
   for(const size of [{width:1440,height:900},{width:768,height:1024},{width:390,height:844},{width:320,height:640}]){
     await page.setViewportSize(size);
+    /* resize 會丟掉 drawing buffer，而閒置時場景不重繪；強制重畫並等真的畫完，
+       不然截圖（軟體渲染＋合成器）會拍到空的 canvas。 */
+    const before=await page.evaluate(()=>{globalThis.GameApp.world().zoom(1);return globalThis.GameApp.getWorldStats().frames;});
+    await page.waitForFunction(n=>globalThis.GameApp.getWorldStats().frames>n+1,before,{timeout:60000,polling:120});
     await page.waitForTimeout(300);
     const report=await page.evaluate(()=>{
       const root=document.documentElement;
