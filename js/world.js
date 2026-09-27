@@ -3,9 +3,9 @@
   'use strict';
   const D=global.GameData;
   const W=global.WorldMap;
-  const ANCHORS = {castle:[0,4,-8],tavern:[-24,4,48],warehouse:[25,4,48],market:[-28,4,36],training:[-59,4,2],forge:[-59,4,-24],potion:[-59,4,-38],gem:[31,4,-8],library:[-32,4,-30],altar:[25,4,-28]};
+  const ANCHORS = {castle:[0,4,-8],tavern:[-26,4,54],warehouse:[26,4,54],market:[-46,4,62],training:[-75,4,4],forge:[-75,4,-20],potion:[-75,4,-40],gem:[42,4,-6],library:[-42,4,-28],altar:[40,4,-32]};
   const MILESTONES={castle:[20,40],tavern:[10,20],warehouse:[17,34],training:[14,27],forge:[14,27],potion:[14,27],gem:[14,27],market:[4,7],library:[14,27],altar:[10,20]};
-  const ENTRIES={gold:[-12,4.8,86],xp:[-24,4.8,86],materials:[-36,4.8,86],arena:[20,4.8,86],king:[33,4.8,86],labyrinth:[-50,4.8,85],commission:[-49,4.8,48],worldBoss:[49,4.8,85],tower:[57,4.8,85],abyss:[-60,4.8,85],guild:[18,4.18,10],quests:[-8,4.18,41],collections:[-18,4.18,10]};
+  const ENTRIES={gold:[-12,4.8,98],xp:[-24,4.8,98],materials:[-36,4.8,98],arena:[20,4.8,98],king:[33,4.8,98],labyrinth:[-50,4.8,97],commission:[-70,4.8,52],worldBoss:[49,4.8,97],tower:[57,4.8,97],abyss:[-60,4.8,97],guild:[18,4.18,10],quests:[-8,4.18,41],collections:[-18,4.18,10]};
   const COLORS = {stone:0xb6ad94,stoneDark:0x756f62,roof:0x344a63,wood:0x67462f,metal:0x849395,banner:0x963e43,leaf:0x406b48,grass:0x718358,path:0xaa9877,water:0x386f81,light:0xffc66f,earth:0x81624c,rock:0x67685f,trunk:0x654833,snow:0xd2e1e1,ice:0x78bacb,lava:0xde693b,sand:0xc8ad76,void:0x645280,myth:0xd5bf80,skin:0xd9b18c,cloth:0xe2d5b3,dark:0x2c3540,redSand:0xb37a5b,terracotta:0x9f735e,mud:0x555d4a,mycelium:0x877d8d,sculk:0x384c55,gravel:0x92918b,packedIce:0x92b4c4,cactus:0x53715a};
   const CLASS = {swordsman:{color:0x577b8f,accent:0xd5c99c,weapon:'sword'},archer:{color:0x558163,accent:0xd0af65,weapon:'bow'},mage:{color:0x855f92,accent:0xe4aa6c,weapon:'staff'},assassin:{color:0x42475e,accent:0xb97078,weapon:'daggers'},knight:{color:0x8b9d9c,accent:0x597d92,weapon:'shield'},priest:{color:0xd5c8a7,accent:0x88b991,weapon:'staff'}};
   const BIOMES = [
@@ -195,7 +195,7 @@
     const renderer=new T.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
     renderer.setPixelRatio(Math.min(devicePixelRatio||1,window.innerWidth<650?1.25:1.5));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;renderer.localClippingEnabled=true;
     const unit=new T.BoxGeometry(1,1,1),material=new T.MeshLambertMaterial({vertexColors:false}),glow=new T.MeshBasicMaterial(),waterMaterial=new T.MeshPhongMaterial({shininess:65,specular:0x8caeb6}),proxyMaterial=new T.MeshBasicMaterial({visible:false}),outlineMaterial=new T.MeshBasicMaterial({color:0xe6bd67,transparent:true,opacity:.85,depthWrite:false});
-    const sun=new T.DirectionalLight(0xffe6c5,2.3),hemi=new T.HemisphereLight(0xe7f1f2,0x7b6c54,2.4),fill=new T.DirectionalLight(0xa5c7db,.55);sun.position.set(-70,100,60);sun.castShadow=true;sun.shadow.mapSize.set(window.innerWidth<650?1024:2048,window.innerWidth<650?1024:2048);Object.assign(sun.shadow.camera,{left:-105,right:105,top:105,bottom:-105,near:1,far:360});sun.shadow.normalBias=.35;sun.shadow.bias=-.0003;sun.target.position.set(0,7,0);fill.position.set(60,55,-50);scene.add(sun,sun.target,hemi,fill);
+    const sun=new T.DirectionalLight(0xffe6c5,2.3),hemi=new T.HemisphereLight(0xe7f1f2,0x7b6c54,2.4),fill=new T.DirectionalLight(0xa5c7db,.55);sun.position.set(-70,100,60);sun.castShadow=true;sun.shadow.mapSize.set(window.innerWidth<650?1024:2048,window.innerWidth<650?1024:2048);Object.assign(sun.shadow.camera,{left:-140,right:140,top:140,bottom:-140,near:1,far:420});sun.shadow.normalBias=.35;sun.shadow.bias=-.0003;sun.target.position.set(0,7,0);fill.position.set(60,55,-50);scene.add(sun,sun.target,hemi,fill);
     const castle=new T.Group(),facilities=new T.Group(),zones=new T.Group(),zoneGroups=[];scene.add(castle,facilities,zones);
     const dynamic=new T.InstancedMesh(unit,material,18000);dynamic.count=0;dynamic.instanceMatrix.setUsage(T.DynamicDrawUsage);dynamic.castShadow=false;dynamic.receiveShadow=true;dynamic.frustumCulled=false;scene.add(dynamic);
     const actorShadowMaterial=new T.MeshBasicMaterial({color:0x253129,transparent:true,opacity:.18,depthWrite:false});
@@ -204,7 +204,7 @@
     const selectRing=new T.Group();for(let i=0;i<4;i++){const bar=new T.Mesh(unit,outlineMaterial);bar.scale.set(i%2? .17:7.6,.14,i%2?7.6:.17);bar.position.set(i===1?3.8:i===3?-3.8:0,0,i===0?3.8:i===2?-3.8:0);selectRing.add(bar);}scene.add(selectRing);selectRing.visible=false;
     const dummy=new T.Object3D(),matrix=new T.Matrix4(),color=new T.Color(),raycaster=new T.Raycaster(),pointer=new T.Vector2(),proxies=[],actors=[],fx=[],listeners=[];
     const orbit={theta:.55,phi:.88,size:78,target:new T.Vector3(0,8,4)};
-    const presets={overview:{theta:.55,phi:.88,size:115,target:[0,8,4]},top:{theta:0,phi:.07,size:103,target:[0,4,0]},gate:{theta:.1,phi:1.13,size:33,target:[0,11,64]},courtyard:{theta:.18,phi:.44,size:63,target:[0,4,40]},keep:{theta:.65,phi:.82,size:29,target:[0,25,-8]},ring:{theta:0,phi:.34,size:320,target:[0,4,0]}};
+    const presets={overview:{theta:.55,phi:.88,size:132,target:[0,8,6]},top:{theta:0,phi:.07,size:120,target:[0,4,0]},gate:{theta:.1,phi:1.13,size:36,target:[0,11,78]},courtyard:{theta:.18,phi:.44,size:74,target:[0,4,58]},keep:{theta:.65,phi:.82,size:29,target:[0,25,-8]},ring:{theta:0,phi:.34,size:320,target:[0,4,0]}};
     function on(el,type,fn,opts){el.addEventListener(type,fn,opts);listeners.push(()=>el.removeEventListener(type,fn,opts));}
     function disposeGroup(group){while(group.children.length){const child=group.children.pop();child.traverse(obj=>{if(obj.isInstancedMesh)obj.dispose();if(obj.userData.ownedGeometry)obj.geometry.dispose();if(obj.userData.ownedMaterial)obj.material.dispose();});child.parent=null;}}
     function makeInstances(blocks,parent,name='blocks',chunkSize=0){
@@ -216,7 +216,7 @@
     function buildCastleScene(){
       disposeGroup(castle);const cast=global.buildCastle(hash(seed)),land=global.buildTerrain(hash(seed));
       for(const[name,rows]of Object.entries({...land.batches,...cast.batches})){
-        const filtered=name==='courtyard'?rows.filter(b=>b[1]<4.4||(b[0]>-31&&b[0]<-23&&b[2]>41&&b[2]<49)):name==='nature'?rows.filter(b=>!Object.values(ENTRIES).some(p=>p[2]>45&&Math.abs(p[0]-b[0])<7&&Math.abs(p[2]-b[2])<6)):rows;
+        const filtered=name==='courtyard'?rows.filter(b=>b[1]<4.4||(b[0]>-34&&b[0]<-26&&b[2]>54&&b[2]<63)):name==='nature'?rows.filter(b=>!Object.values(ENTRIES).some(p=>p[2]>45&&Math.abs(p[0]-b[0])<7&&Math.abs(p[2]-b[2])<6)):rows;
         const blocks=filtered.map(b=>({x:b[0],y:b[1],z:b[2],sx:b[3],sy:b[4],sz:b[5],c:b[6],shade:b[7]}));makeInstances(blocks,castle,name,64);
       }
       // Presentation clipping belongs to these meshes, not the shared default material.

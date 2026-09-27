@@ -34,12 +34,13 @@ function buildTerrain(seed) {
     column(x, z, 4);
   }
   // The causeway crosses the moat on the same y=4 plane as both gates.
-  for (let z = 72; z <= 88; z += 2) {
+  const gateZ = W.castle.gate.z;
+  for (let z = gateZ + 4; z <= gateZ + 20; z += 2) {
     add('terrain', 0, 4.055, z, 8, .11, 1.94, 'wood', .83 + hash(0, z, 20) * .16);
   }
   for (const x of [-4.7, 4.7]) {
-    add('nature', x, 4.6, 80, .27, .25, 19, 'wood', .89);
-    for (let z = 72; z <= 88; z += 4) add('nature', x, 4.95, z, .38, 1.9, .38, 'wood', .96);
+    add('nature', x, 4.6, gateZ + 12, .27, .25, 19, 'wood', .89);
+    for (let z = gateZ + 4; z <= gateZ + 20; z += 4) add('nature', x, 4.95, z, .38, 1.9, .38, 'wood', .96);
   }
   function tree(x, z, ground, dark = false) {
     const tall = (dark ? 8 : 6) + hash(x, z, 30) * 3;

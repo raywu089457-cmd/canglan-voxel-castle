@@ -71,9 +71,13 @@ WorldMap = {
 
 ```
 CELL=2  SPAN=320  NAV_HALF=288  RADIUS=252  ARENA_Y=4  PAD=30  ROAD_HALF=5
-PLATEAU=[78,70]  MOAT=[88,80]  CLEAR=[92,84]
-OUTER={x:72,z:64,top:18}  INNER={x:45,zMin:-44,zMax:28,top:24}  GATE={x:0,z:64}  SPAWN=[0,30]
+PLATEAU=外牆+6  MOAT=外牆+16  CLEAR=外牆+20（同一個八邊形等距外推）→ [98,84] / [108,94] / [112,98]
+OUTER={x:92,z:78,cut:42,top:18}（八邊形：|x|+|z| = 92+78-42 = 128 是切角線）
+INNER={x:57,zMin:-50,zMax:36,top:24}  KEEP={x:10,zMin:-17,zMax:1,tower:4.2}
+GATE={x:0,z:78}  SPAWN=[0,32]  JUNCTION=[0,118]
 MOAT_Y=2.2  OCEAN_Y=-1.4  SLOPE=1.35（坡度硬上限）
+※ 2026-09-26 更新：外圈改成八邊形（切角閃開 zone 2 的競技場），兩圈間距與內牆到主堡都拉開；
+   形狀只有一個來源 WorldMap.castle.dist(x,z)，導航的牆格／護城河／畫面方塊都讀它。
 ```
 
 **門洞寬度必須與 `js/castle-geometry.js` 畫的拱門一致**：那裡是 `archOpening(t,y,4,3,7)` → `|x| ≤ 3`。

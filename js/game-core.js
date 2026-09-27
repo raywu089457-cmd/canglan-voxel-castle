@@ -131,6 +131,20 @@
   /* Members walk one shared route, so without this they would stand inside each other.
      Spacing is part of the game data: the saved coordinates are nudged apart, only in
      directions the map allows, and the monster keeps a hard exclusion radius. */
+  /* Nudge one actor along a direction, in steps the map actually allows. A single push
+     bigger than one grid node would be rejected by validStep() (it only allows one node
+     per step), which is how two members could stay inside each other while both were
+     moving. Small steps keep every push legal. */
+  function slide(entity,ux,uz,distance,walker){
+    let done=0,guard=0;
+    while(distance-done>1e-6&&guard++<10){
+      const len=Math.min(distance-done,1.8);
+      const nx=entity.x+ux*len,nz=entity.z+uz*len;
+      if(!stepOk(walker,[entity.x,entity.z],[nx,nz]))break;
+      entity.x=nx;entity.z=nz;done+=len;
+    }
+    return done;
+  }
   function settleParty(f,walker,ids){
     const gap=FIELD.gap,foeGap=FIELD.heroRange*.62,living=f.party.filter(m=>ids.has(m.id));
     for(let pass=0;pass<4;pass++){
@@ -140,10 +154,9 @@
         let dx=mb.x-ma.x,dz=mb.z-ma.z,d=Math.hypot(dx,dz);
         if(d>=gap)continue;
         if(d<1e-6){const g=2.399963229728653*(b+1);dx=Math.cos(g);dz=Math.sin(g);d=1;}
-        const ux=dx/d,uz=dz/d,push=(gap-d)/2;
-        const ax=ma.x-ux*push,az=ma.z-uz*push,bx=mb.x+ux*push,bz=mb.z+uz*push;
-        if(stepOk(walker,[ma.x,ma.z],[ax,az])){ma.x=ax;ma.z=az;moved=true;}
-        if(stepOk(walker,[mb.x,mb.z],[bx,bz])){mb.x=bx;mb.z=bz;moved=true;}
+        const ux=dx/d,uz=dz/d,push=gap-d;
+        if(slide(ma,-ux,-uz,push,walker)>0)moved=true;
+        if(slide(mb,ux,uz,push,walker)>0)moved=true;
       }
       for(const m of living){
         const dx=m.x-f.foe.x,dz=m.z-f.foe.z,d=Math.hypot(dx,dz);
@@ -246,13 +259,16 @@
           ||walker.toWorld(walker.layout.slots[m.slot][0],walker.layout.slots[m.slot][1]);
         const at=walker.walkable(m.x,m.z)?[]:worldPath([m.x,m.z],walker.toWorld(...walker.layout.gate));
         m.path=at.concat(findPath(walker,at.length?at[at.length-1]:[m.x,m.z],goal));m.pi=0;
-        if(chasing)m.retry=FIELD.repath;
-        else if(!m.path.length)m.retry=1;
+        /* Always arm the cooldown, even when the replan came back empty: arming it only
+           on success would leave the timer above zero for ever and the member would
+           never get another turn to path again. */
+        m.retry=FIELD.repath;
+        if(!m.path.length)m.failures=(m.failures||0)+1;
       }
       const before=[m.x,m.z],valid=walkAlong(m,step,walker);
       if(h.active&&!m.path.length&&(!valid||Math.hypot(m.x-f.foe.x,m.z-f.foe.z)>FIELD.heroRange)){
-        if(attempted||!valid)m.failures=(m.failures||0)+1;
-        m.retry=1;
+        /* 這裡絕對不能再動冷卻，否則重算永遠等不到「冷卻歸零」而不會發生。 */
+        if(!valid)m.failures=(m.failures||0)+1;
         if(m.failures>=8){m.x=W.castle.spawn[0];m.z=W.castle.spawn[1];h.field=null;log(s,'路線受阻，隊伍已返回城內重新出發。','warning');return;}
       }else if(Math.hypot(m.x-before[0],m.z-before[1])>.01)m.failures=0;
     }

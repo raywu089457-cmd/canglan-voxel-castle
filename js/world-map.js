@@ -36,13 +36,25 @@
   const ARENA_Y = 4;           // 城堡台地與競技場空地的固定高度
   const PAD = 30;              // 每區整平空地半徑（規格值）
   const ROAD_HALF = 5;         // 路面半寬
-  const PLATEAU = [78, 70];    // 城堡台地半邊
-  const MOAT = [88, 80];       // 護城河外緣
-  const CLEAR = [92, 84];      // 城堡特區：不屬於任何群系
-  const OUTER = { x: 72, z: 64, top: 18 };
-  const INNER = { x: 45, zMin: -44, zMax: 28, top: 24 };
+  /* ---------------------------------------------------------------- 城堡
+     外圈是八邊形：四邊 ±92／±78，四角各向内切 42。切角不是裝飾，是為了讓兩圈都能
+     往外長——zone 2 的競技場正好壓在城堡西南方的對角線上，方形外角一長大就會撞
+     進它的空地。護城河、台地與城堡特區都是這個八邊形等距外推。 */
+  const OUTER = { x: 92, z: 78, cut: 42, top: 18 };
+  const CHAMFER = OUTER.x + OUTER.z - OUTER.cut;   // 切角線：|x| + |z| = CHAMFER
+  /* 八邊形的向外距離：正值在城外，負值在城內。凸多邊形取各邊距離的最大值即為精確值。 */
+  function castleDist(x, z) {
+    return Math.max(Math.abs(x) - OUTER.x, Math.abs(z) - OUTER.z, (Math.abs(x) + Math.abs(z) - CHAMFER) / Math.SQRT2);
+  }
+  const PLATEAU_D = 6, MOAT_D = 16, CLEAR_D = 20;
+  const PLATEAU = [OUTER.x + PLATEAU_D, OUTER.z + PLATEAU_D];  // 城堡台地（全平地）
+  const MOAT = [OUTER.x + MOAT_D, OUTER.z + MOAT_D];           // 護城河外緣
+  const CLEAR = [OUTER.x + CLEAR_D, OUTER.z + CLEAR_D];        // 城堡特區：不屬於任何群系
+  const INNER = { x: 57, zMin: -50, zMax: 36, top: 24 };
+  /* 主堡的佔地（含四角圓塔）：審查腳本用它算「內圈到主堡」的間距，不必重複寫數字。 */
+  const KEEP = { x: 10, zMin: -17, zMax: 1, tower: 4.2 };
   const GATE = { x: 0, z: OUTER.z };
-  const SPAWN = [0, 30];
+  const SPAWN = [0, 32];
   const MOAT_Y = 2.2, OCEAN_Y = -1.4, SLOPE = 1.35;
 
   /* ---------------------------------------------------------------- 生物群系
@@ -133,8 +145,8 @@
      陸地一律不低於水面高度：可走的地方不會沉到水下，也不會出現看不見底的坑。 */
   function sampleTerrain(x, z) {
     const b = regionBlend(x, z);
-    let h = b.bio < 0 || Math.abs(x) <= CLEAR[0] && Math.abs(z) <= CLEAR[1] ? ARENA_Y : Math.max(2.2, b.base + b.relief * reliefNoise(x, z, b.scale, 311));
-    const cd = Math.max(Math.abs(x) - PLATEAU[0], Math.abs(z) - PLATEAU[1]);
+    let h = b.bio < 0 || castleDist(x, z) <= CLEAR_D ? ARENA_Y : Math.max(2.2, b.base + b.relief * reliefNoise(x, z, b.scale, 311));
+    const cd = castleDist(x, z) - PLATEAU_D;
     if (cd <= 0) return { bio: b.bio, h: ARENA_Y };
     if (cd < 34) h = lerp(ARENA_Y, h, smooth(cd / 34));
     let flat = 0;
@@ -185,7 +197,7 @@
     }
     return out;
   }
-  const JUNCTION = [0, 104];
+  const JUNCTION = [0, 118];
   const loopControl = [];
   for (let i = 0; i < zones.length; i++) {
     loopControl.push(zones[i].approach);
@@ -195,7 +207,7 @@
     loopControl.push([Math.round(Math.sin(mid) * radius), Math.round(Math.cos(mid) * radius)]);
   }
   const loop = catmullClosed(loopControl, 2);
-  const causeway = resample([[0, 16], [0, 26], [SPAWN[0], SPAWN[1]], [0, 44], [0, 58], [0, GATE.z], [0, 72], [0, 86], [0, 100], JUNCTION], 2);
+  const causeway = resample([[0, 16], [0, 26], [SPAWN[0], SPAWN[1]], [0, 48], [0, 62], [0, GATE.z], [0, 92], [0, 104], JUNCTION], 2);
 
   /* ---------------------------------------------------------------- 網格
      先把地形算成固定網格，之後所有查詢（高度、可走、障礙）都只是讀表，模擬端每
@@ -267,18 +279,19 @@
       if (!(FLAG[at] & 1)) continue;
       /* 門洞寬度必須與 castle-geometry.js 畫的拱門一致（archOpening 的 wide=3 → |x| ≤ 3），
          否則導航會讓人在「牆有被畫出來」的格子上走出去，就是穿牆。 */
+      /* 外圈是八邊形，內圈仍是方形；門洞寬度必須與 castle-geometry.js 畫的拱門一致。 */
       const gate = (wallAt(z, GATE.z) || wallAt(z, INNER.zMax)) && Math.abs(x - GATE.x) <= 3;
-      const outerWall = (wallAtAbs(x, OUTER.x) && Math.abs(z) <= OUTER.z + .01) ||
-        (wallAtAbs(z, OUTER.z) && Math.abs(x) <= OUTER.x + .01);
+      const dCastle = castleDist(x, z);
+      const outerWall = dCastle <= 0 && dCastle >= -2.45;
       const innerWall = (wallAtAbs(x, INNER.x) && z >= INNER.zMin - .01 && z <= INNER.zMax + .01) ||
         (wallAt(z, INNER.zMin) && Math.abs(x) <= INNER.x + .01) || (wallAt(z, INNER.zMax) && Math.abs(x) <= INNER.x + .01);
       /* 城門是「牆上的門洞」：門洞格既不是實心（blocked 為 false，牆線在這裡真的斷開），
          也一定可以走（walkable 為 true）。blocked() 只描述實心結構，不描述能不能通過；
          二者只在水與岩石上一致。這樣渲染、碰撞、尋路三邊吃到的都是同一個事實。 */
       if (outerWall || innerWall) { FLAG[at] |= WALL | (gate ? D_OPEN : 2); H[at] = ARENA_Y; SURFID[at] = SURF.stoneDark; continue; }
-      const plateau = Math.abs(x) <= PLATEAU[0] && Math.abs(z) <= PLATEAU[1];
+      const plateau = dCastle <= PLATEAU_D;
       /* 護城河是水，但橋面例外：路廊本身就是橋，高度沿用路面。 */
-      if (!plateau && !roadCell[at] && Math.abs(x) < MOAT[0] && Math.abs(z) < MOAT[1]) { FLAG[at] |= 2; H[at] = MOAT_Y; SURFID[at] = SURF.water; continue; }
+      if (!plateau && !roadCell[at] && dCastle < MOAT_D) { FLAG[at] |= 2; H[at] = MOAT_Y; SURFID[at] = SURF.water; continue; }
       if (roadCell[at]) { SURFID[at] = SURF.path; H[at] = lerp(H[at], roadH[at], roadW[at]); }
     }
   }
@@ -557,7 +570,7 @@
 
   const api = {
     seed: SEED_TEXT, cell: CELL, navHalf: NAV_HALF, radius: RADIUS,
-    castle: { plateau: PLATEAU, moat: MOAT, clear: CLEAR, outer: OUTER, inner: INNER, gate: GATE, spawn: SPAWN, junction: JUNCTION },
+    castle: { plateau: PLATEAU, moat: MOAT, clear: CLEAR, outer: OUTER, inner: INNER, keep: KEEP, gate: GATE, spawn: SPAWN, junction: JUNCTION, depth: { plateau: PLATEAU_D, moat: MOAT_D, clear: CLEAR_D }, dist: castleDist },
     zones, biomes, props, road: causeway, loop,
     coastRadius, isLand, height, surface, biomeAt, blocked, walkable,
     validStep, findPath, smoothPath, routeTo, routeBetween

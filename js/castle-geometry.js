@@ -2,6 +2,16 @@
 function buildCastle(seed = 314159) {
   const batches = { outer: [], inner: [], keep: [], courtyard: [] };
   const occupied = Object.fromEntries(Object.keys(batches).map(k => [k, new Set()]));
+  /* 城堡尺寸只有一個來源：WorldMap。外圈是八邊形（四邊 ±OX／±OZ，四角各切 CUT），
+     內圈仍是矩形。切角線 |x| + |z| = CH 與世界地圖的 castleDist() 用同一個定義。 */
+  const W = globalThis.WorldMap || (typeof require === 'function' ? require('./world-map.js') : null);
+  const OX = W ? W.castle.outer.x : 92, OZ = W ? W.castle.outer.z : 78, CUT = W ? W.castle.outer.cut : 42;
+  const CH = OX + OZ - CUT, X_END = OX - CUT, Z_END = OZ - CUT;
+  const IX = W ? W.castle.inner.x : 57, IZ_MIN = W ? W.castle.inner.zMin : -50, IZ_MAX = W ? W.castle.inner.zMax : 36;
+  const GATE_Z = W ? W.castle.gate.z : OZ;
+  const PLATEAU_D = W ? W.castle.depth.plateau : 6;
+  const castleDist = (x, z) => W ? W.castle.dist(x, z)
+    : Math.max(Math.abs(x) - OX, Math.abs(z) - OZ, (Math.abs(x) + Math.abs(z) - CH) / Math.SQRT2);
   let seedHash = 2166136261;
   for (const c of String(seed)) seedHash = Math.imul(seedHash ^ c.charCodeAt(0), 16777619);
   let randomState = seedHash >>> 0;
@@ -57,7 +67,7 @@ function buildCastle(seed = 314159) {
     // Foundations extend to the moat bed wherever tower shells project beyond the plateau.
     if (batch === 'outer') for (const [dx, dz, d] of points) {
       if (d < radius - 1.35) continue;
-      if (Math.abs(cx + dx) + 0.5 <= 78 && Math.abs(cz + dz) + 0.5 <= 70) continue;
+      if (castleDist(cx + dx, cz + dz) <= PLATEAU_D) continue;
       for (let y = 0; y < 4; y++) voxel(batch, cx + dx, y, cz + dz, 'stoneDark');
     }
     for (let y = 4; y < top; y++) for (const [dx, dz, d] of points) {
@@ -134,32 +144,62 @@ function buildCastle(seed = 314159) {
       }
     }
   }
+  /* 切角牆：45° 斜向，三層厚（最外層正好落在 |x|+|z| = CH），高度、走道、箭孔與扶壁
+     都比照直邊牆，所以八邊形看起來仍然是一道連續的城牆。 */
+  function diagWall(batch, sx, sz, top) {
+    for (let i = 0; i <= CUT; i++) {
+      const x = (OX - i) * sx;
+      for (let layer = 0; layer < 3; layer++) {
+        const m = CH - layer * 2, z = (m - (OX - i)) * sz;
+        if (Math.abs(z) < Z_END - 1) continue;
+        for (let y = 4; y < top; y++) {
+          const slit = i % 9 === 3 && y >= top - 7 && y <= top - 5 && layer === 0;
+          if (slit) continue;
+          voxel(batch, x, y, z, y === 5 || y === top - 4 ? 'stoneDark' : 'stone');
+        }
+        voxel(batch, x, top, z);
+        if (i % 4 < 2) { voxel(batch, x, top + 1, z); voxel(batch, x, top + 2, z); }
+        if (i % 4 === 0 && layer === 2) voxel(batch, x, top - 3, z, 'stoneDark');
+        if (layer === 2) voxel(batch, x, top - 2, z);
+        if (i % 9 === 0 && layer === 0 && Math.abs(z) > Z_END + 1) {
+          for (let y = 4; y < top - 5; y++) {
+            voxel(batch, x, y, z + sz, 'stoneDark');
+            if (y < 8) voxel(batch, x, y, z + sz * 2, 'stoneDark');
+          }
+        }
+      }
+    }
+  }
   // The wider outer bailey leaves independent sites for the ten facilities.
-  wall('outer', 'x', -64, -72, 72, 18);
-  wall('outer', 'x', 64, -72, 72, 18, true);
-  wall('outer', 'z', -72, -64, 64, 18);
-  wall('outer', 'z', 72, -64, 64, 18);
-  for (const x of [-72, 72]) for (const z of [-64, 64]) roundTower('outer', x, z, 5, 28);
-  for (const x of [-72, 72]) roundTower('outer', x, 0, 4.5, 26);
-  roundTower('outer', 0, -64, 4.5, 27);
-  for (const x of [-8, 8]) roundTower('outer', x, 64, 4.5, 31, false, true);
+  wall('outer', 'x', -OZ, -X_END, X_END, 18);
+  wall('outer', 'x', OZ, -X_END, X_END, 18, true);
+  wall('outer', 'z', -OX, -Z_END, Z_END, 18);
+  wall('outer', 'z', OX, -Z_END, Z_END, 18);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) diagWall('outer', sx, sz, 18);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    roundTower('outer', sx * OX, sz * Z_END, 5, 28);
+    roundTower('outer', sx * X_END, sz * OZ, 4.5, 27);
+  }
+  for (const sx of [-1, 1]) roundTower('outer', sx * OX, 0, 4.5, 26);
+  roundTower('outer', 0, -OZ, 4.5, 27);
+  for (const x of [-8, 8]) roundTower('outer', x, OZ, 4.5, 31, false, true);
   // Raised portcullis and outward-open gate leaves preserve the entrance void.
-  for (let x = -3; x <= 3; x++) box('outer', x, 16.6, 64.65, 0.13, 3.6, 0.18, 'metal');
-  for (const y of [15.4, 16.7, 18]) box('outer', 0, y, 64.65, 7, 0.15, 0.22, 'metal');
+  for (let x = -3; x <= 3; x++) box('outer', x, 16.6, GATE_Z + 0.65, 0.13, 3.6, 0.18, 'metal');
+  for (const y of [15.4, 16.7, 18]) box('outer', 0, y, GATE_Z + 0.65, 7, 0.15, 0.22, 'metal');
   for (const x of [-4.15, 4.15]) {
-    box('outer', x, 7.5, 60.7, 0.45, 7, 4.3, 'wood');
-    for (const y of [5.5, 8.7]) box('outer', x, y, 60.7, 0.52, 0.22, 4.5, 'metal');
-    torch('outer', x * 1.35, 9, 69.2);
+    box('outer', x, 7.5, GATE_Z - 3.3, 0.45, 7, 4.3, 'wood');
+    for (const y of [5.5, 8.7]) box('outer', x, y, GATE_Z - 3.3, 0.52, 0.22, 4.5, 'metal');
+    torch('outer', x * 1.35, 9, GATE_Z + 5.2);
   }
   // The taller inner ring leaves a wide outer bailey on every side.
-  wall('inner', 'x', -44, -45, 45, 24);
-  wall('inner', 'x', 28, -45, 45, 24, true);
-  wall('inner', 'z', -45, -44, 28, 24);
-  wall('inner', 'z', 45, -44, 28, 24);
-  for (const x of [-45, 45]) for (const z of [-44, 28]) roundTower('inner', x, z, 4, 33);
-  for (const x of [-7, 7]) roundTower('inner', x, 28, 3.5, 34, false, true);
-  for (let x = -3; x <= 3; x++) box('inner', x, 16, 28.65, 0.15, 5, 0.18, 'metal');
-  for (const y of [14, 16, 18]) box('inner', 0, y, 28.65, 7, 0.15, 0.2, 'metal');
+  wall('inner', 'x', IZ_MIN, -IX, IX, 24);
+  wall('inner', 'x', IZ_MAX, -IX, IX, 24, true);
+  wall('inner', 'z', -IX, IZ_MIN, IZ_MAX, 24);
+  wall('inner', 'z', IX, IZ_MIN, IZ_MAX, 24);
+  for (const x of [-IX, IX]) for (const z of [IZ_MIN, IZ_MAX]) roundTower('inner', x, z, 4, 33);
+  for (const x of [-7, 7]) roundTower('inner', x, IZ_MAX, 3.5, 34, false, true);
+  for (let x = -3; x <= 3; x++) box('inner', x, 16, IZ_MAX + 0.65, 0.15, 5, 0.18, 'metal');
+  for (const y of [14, 16, 18]) box('inner', 0, y, IZ_MAX + 0.65, 7, 0.15, 0.2, 'metal');
   // Keep shell with arched entry and tall recessed windows on each facade.
   for (let x = -10; x <= 10; x++) for (let z = -17; z <= 1; z++) {
     const boundary = Math.abs(x) >= 9 || z <= -16 || z >= 0;
@@ -200,15 +240,16 @@ function buildCastle(seed = 314159) {
   }
   for (const x of [-3.6, 3.6]) torch('keep', x, 8.1, 3.6);
   // Interlocking cobbles: the unobstructed axis runs through both gatehouses.
-  for (let x = -70; x <= 70; x++) for (let z = -62; z <= 62; z++) {
+  for (let x = -OX; x <= OX; x++) for (let z = -OZ; z <= OZ; z++) {
+    if (castleDist(x, z) > PLATEAU_D) continue;   // 八邊形以外不鋪石
     const underKeep = Math.abs(x) <= 14 && z >= -21 && z <= 5;
-    const wallBand = (Math.abs(x) >= 44 && Math.abs(x) <= 46 && z >= -44 && z <= 28) ||
-      ((z >= -44 && z <= -42 || z >= 27 && z <= 29) && Math.abs(x) <= 46 && Math.abs(x) > 3);
+    const wallBand = (Math.abs(x) >= IX - 1 && Math.abs(x) <= IX + 1 && z >= IZ_MIN && z <= IZ_MAX) ||
+      ((z >= IZ_MIN && z <= IZ_MIN + 2 || z >= IZ_MAX - 2 && z <= IZ_MAX) && Math.abs(x) <= IX + 1 && Math.abs(x) > 3);
     if (underKeep || wallBand) continue;
-    const road = Math.abs(x) <= 3 || z >= 42 && z <= 46 || Math.abs(x) >= 49 && Math.abs(x) <= 53;
+    const road = Math.abs(x) <= 3 || z >= 42 && z <= 46 || Math.abs(x) >= IX + 4 && Math.abs(x) <= IX + 8;
     box('courtyard', x, 4.08, z, 0.94, 0.14, 0.94, road ? 'path' : 'stoneDark', road ? 0.94 + random() * 0.16 : 0.85 + random() * 0.15);
   }
-  for (let x = -3; x <= 3; x++) for (let z = 63; z <= 70; z++) box('courtyard', x, 4.08, z, 0.96, 0.15, 0.96, 'path');
+  for (let x = -3; x <= 3; x++) for (let z = GATE_Z - 1; z <= GATE_Z + 8; z++) box('courtyard', x, 4.08, z, 0.96, 0.15, 0.96, 'path');
   function smallBuilding(cx, cz, width, depth, wallTop, roofMaterial) {
     const hx = Math.floor(width / 2), hz = Math.floor(depth / 2);
     for (let x = -hx; x <= hx; x++) for (let z = -hz; z <= hz; z++) {
@@ -237,7 +278,7 @@ function buildCastle(seed = 314159) {
   }
   // Upgradeable facilities are built in these side bays by world.js.
   // Stone well with a hollow opening, water below, timber posts and tiled canopy.
-  const wx = -27, wz = 45;
+  const wx = -30, wz = 58;
   for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
     if (Math.hypot(dx, dz) > 2.6) continue;
     if (Math.hypot(dx, dz) > 1.1) {
@@ -263,18 +304,18 @@ function buildCastle(seed = 314159) {
   // Exterior-access stair flights up to the outer wall walks.
   for (const sign of [-1, 1]) for (let step = 0; step < 11; step++) {
     for (let w = 0; w < 3; w++) {
-      box('outer', sign * (58 + step), 4.5 + step, 59 - w, 1, 1, 1, 'stoneDark');
-      if (step > 0) box('outer', sign * (58 + step), 4 + step / 2, 59 - w, 1, step, 1, 'stoneDark');
+      box('outer', sign * (38 + step), 4.5 + step, 73 - w, 1, 1, 1, 'stoneDark');
+      if (step > 0) box('outer', sign * (38 + step), 4 + step / 2, 73 - w, 1, step, 1, 'stoneDark');
     }
   }
   return {
     batches,
     landmarks: [
-      { id: 'outer', label: '第一道防线 · 外城墙', pos: [72, 23, 2] },
-      { id: 'inner', label: '第二道防线 · 内城堡', pos: [45, 31, 28] },
+      { id: 'outer', label: '第一道防线 · 外城墙', pos: [OX, 23, 2] },
+      { id: 'inner', label: '第二道防线 · 内城堡', pos: [IX, 31, IZ_MAX] },
       { id: 'keep', label: '中央主堡 · 最后防线', pos: [0, 52, -8] },
-      { id: 'gate', label: '双塔城门 · 吊闸入口', pos: [0, 21, 67] },
-      { id: 'courtyard', label: '前庭院 · 补给与集结', pos: [-27, 12, 45] }
+      { id: 'gate', label: '双塔城门 · 吊闸入口', pos: [0, 21, GATE_Z + 3] },
+      { id: 'courtyard', label: '前庭院 · 补给与集结', pos: [wx, 12, wz] }
     ],
     stats: { towers: towerCount }
   };

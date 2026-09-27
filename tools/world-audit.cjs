@@ -219,24 +219,30 @@ check('群系：十個都成立、面積足夠、形狀不規則', () => {
 });
 
 /* ---------------------------------------------------------------- 9. 城堡中央土地 */
-check('城堡：中央土地 ≥ 3 倍、城牆完整、城門是唯一開口', () => {
+check('城堡：中央土地 ≥ 3 倍、八邊形城牆完整、城門是唯一開口', () => {
   const c = W.castle || {};
-  const plateau = c.plateau || [78, 70];
+  const dist = c.dist || (() => 0);
+  const depth = c.depth || { plateau: 6 };
+  const outer = c.outer || { x: 92, z: 78, cut: 42 };
+  const sweep = outer.x + depth.plateau;
   let inside = 0, blockedInside = 0;
-  for (let x = -plateau[0]; x <= plateau[0]; x += cell) for (let z = -plateau[1]; z <= plateau[1]; z += cell) {
+  for (let x = -sweep; x <= sweep; x += cell) for (let z = -sweep; z <= sweep; z += cell) {
+    if (dist(x, z) > depth.plateau) continue;
     inside++;
     if (W.blocked(x, z)) blockedInside++; // 只有城牆與建築可以擋
   }
   const oldArea = (44 * 2) * (38 * 2) / (cell * cell);
   const ratio = inside / oldArea;
-  // 外牆取樣：牆面上必須是 blocked（除了城門開口）
-  /* 城門語意（重要）：門洞是「牆上的洞」，所以門洞格必須不是 blocked，而且必須 walkable；
-     牆線的其他地方必須是 blocked。blocked() 只代表實心結構，不代表不能走。 */
-  const outer = c.outer || { x: 72, z: 64 };
+  /* 外牆取樣：八邊形的每一個牆格都必須是 blocked，只有城門開口例外。
+     城門語意（重要）：門洞是「牆上的洞」，所以門洞格必須不是 blocked，而且必須 walkable。 */
   const gx = c.gate ? c.gate.x : 0;
-  let wallHoles = 0, gateSealed = 0, gateNotWalkable = 0;
-  for (const z of [outer.z, outer.z - cell]) for (let x = -outer.x; x <= outer.x; x += cell) {
-    if (Math.abs(x - gx) <= 3.9) {
+  const isGate = (x, z) => Math.abs(x - gx) <= 3.9 && z <= outer.z + .01 && z >= outer.z - cell - .01;
+  let wallCells = 0, wallHoles = 0, gateSealed = 0, gateNotWalkable = 0;
+  for (let x = -sweep; x <= sweep; x += cell) for (let z = -sweep; z <= sweep; z += cell) {
+    const d = dist(x, z);
+    if (d > 0 || d < -2.45) continue;
+    wallCells++;
+    if (isGate(x, z)) {
       if (W.blocked(x, z)) gateSealed++;
       if (!W.walkable(x, z)) gateNotWalkable++;
       continue;
@@ -244,8 +250,27 @@ check('城堡：中央土地 ≥ 3 倍、城牆完整、城門是唯一開口', 
     if (!W.blocked(x, z)) wallHoles++;
   }
   return {
-    ok: ratio >= 3 && wallHoles === 0 && gateSealed === 0 && gateNotWalkable === 0,
-    detail: `中央格數 ${inside}（舊制 ${oldArea.toFixed(0)} → ${ratio.toFixed(2)} 倍）| 牆上有洞 ${wallHoles} 城門被填死 ${gateSealed} 城門走不通 ${gateNotWalkable} | 內部被擋 ${blockedInside} 格（應只有建築）`
+    ok: ratio >= 3 && wallCells > 400 && wallHoles === 0 && gateSealed === 0 && gateNotWalkable === 0,
+    detail: `中央格數 ${inside}（舊制 ${oldArea.toFixed(0)} → ${ratio.toFixed(2)} 倍）| 外牆取樣 ${wallCells} 格 牆上有洞 ${wallHoles} 城門被填死 ${gateSealed} 城門走不通 ${gateNotWalkable} | 內部被擋 ${blockedInside} 格（應只有建築）`
+  };
+});
+
+/* ------------------------------------------------- 9b. 兩圈防禦與主堡的間距 */
+check('城堡：兩圈防禦彼此拉開、內層到主堡也拉開', () => {
+  const c = W.castle, k = c.keep || { x: 10, zMin: -17, zMax: 1, tower: 4.2 };
+  const keepX = k.x + k.tower, keepZMin = k.zMin - k.tower, keepZMax = k.zMax + k.tower;
+  const gaps = [
+    ['外牆→內牆（東西）', c.outer.x - c.inner.x],
+    ['外牆→內牆（北側）', c.inner.zMin + c.outer.z],
+    ['外牆→內牆（南側）', c.outer.z - c.inner.zMax],
+    ['內牆→主堡（東西）', c.inner.x - keepX],
+    ['內牆→主堡（北側）', c.inner.zMax - keepZMax],
+    ['內牆→主堡（南側）', keepZMin - c.inner.zMin]
+  ];
+  const worst = Math.min(...gaps.map(g => g[1]));
+  return {
+    ok: worst >= 26,
+    detail: gaps.map(([name, v]) => name + ' ' + v.toFixed(1)).join(' | ') + '（最小 ' + worst.toFixed(1) + '，門檻 26）'
   };
 });
 
