@@ -30,9 +30,9 @@
 
   /* ---------------------------------------------------------------- 尺度 */
   const CELL = 2;              // 網格步長，與舊地形一致
-  const SPAN = 320;            // 預先算好的地形範圍（±320）
-  const NAV_HALF = 288;        // A* 可活動範圍；比 SPAN 窄，路線不會撞到預算邊界
-  const RADIUS = 252;          // 海岸基準半徑
+  const SPAN = 640;            // 預先算好的地形範圍（±640）＝舊制的兩倍
+  const NAV_HALF = 576;        // A* 可活動範圍；比 SPAN 窄，路線不會撞到預算邊界
+  const RADIUS = 504;          // 海岸基準半徑（舊制 252 的兩倍）
   const ARENA_Y = 4;           // 城堡台地與競技場空地的固定高度
   const PAD = 30;              // 每區整平空地半徑（規格值）
   const ROAD_HALF = 5;         // 路面半寬
@@ -64,16 +64,16 @@
   const SURF = Object.fromEntries(SURFACES.map((s, i) => [s, i]));
   const BIOME_ROWS = [
     /* id, 遊戲名, MC 群系, 地表, 邊坡, 基準, 起伏, 波長, 會擋人的裝飾, 樹/裝飾密度 */
-    ['plains', '翠綠草原', 'Plains', 'grass', 'earth', 3.2, 1.7, 30, '', .016],
-    ['dark_forest', '幽暗森林', 'Dark Forest', 'grass', 'earth', 3.6, 2.6, 28, '', .12],
-    ['stony_peaks', '灰燼洞穴', 'Stony Peaks & Caves', 'rock', 'gravel', 5.0, 4.6, 34, 'spire', .020],
-    ['badlands', '烈焰火山', 'Badlands', 'redSand', 'terracotta', 4.0, 3.0, 30, 'lava', .016],
-    ['snowy_plains', '冰封高原', 'Snowy Plains & Ice Spikes', 'snow', 'packedIce', 3.4, 2.4, 30, 'iceSpike', .018],
-    ['desert', '黃沙荒漠', 'Desert', 'sand', 'sand', 3.2, 2.0, 26, '', .018],
-    ['swamp', '詛咒沼澤', 'Swamp & Mangrove', 'mud', 'mud', 2.6, 1.0, 30, 'pond', .020],
-    ['windswept_hills', '蒼穹之塔', 'Windswept Hills & Jagged Peaks', 'rock', 'stone', 5.5, 5.4, 40, 'spire', .022],
-    ['deep_dark', '深淵裂谷', 'Deep Dark & Dripstone Caves', 'sculk', 'stoneDark', 2.6, 3.4, 30, 'pillar', .020],
-    ['mushroom_fields', '神話之域', 'Mushroom Fields', 'mycelium', 'mycelium', 4.2, 2.8, 30, '', .018]
+    ['plains', '翠綠草原', 'Plains', 'grass', 'earth', 3.2, 1.7, 60, '', .016],
+    ['dark_forest', '幽暗森林', 'Dark Forest', 'grass', 'earth', 3.6, 2.6, 56, '', .12],
+    ['stony_peaks', '灰燼洞穴', 'Stony Peaks & Caves', 'rock', 'gravel', 5.0, 4.6, 68, 'spire', .020],
+    ['badlands', '烈焰火山', 'Badlands', 'redSand', 'terracotta', 4.0, 3.0, 60, 'lava', .016],
+    ['snowy_plains', '冰封高原', 'Snowy Plains & Ice Spikes', 'snow', 'packedIce', 3.4, 2.4, 60, 'iceSpike', .018],
+    ['desert', '黃沙荒漠', 'Desert', 'sand', 'sand', 3.2, 2.0, 52, '', .018],
+    ['swamp', '詛咒沼澤', 'Swamp & Mangrove', 'mud', 'mud', 2.6, 1.0, 60, 'pond', .020],
+    ['windswept_hills', '蒼穹之塔', 'Windswept Hills & Jagged Peaks', 'rock', 'stone', 5.5, 5.4, 80, 'spire', .022],
+    ['deep_dark', '深淵裂谷', 'Deep Dark & Dripstone Caves', 'sculk', 'stoneDark', 2.6, 3.4, 60, 'pillar', .020],
+    ['mushroom_fields', '神話之域', 'Mushroom Fields', 'mycelium', 'mycelium', 4.2, 2.8, 60, '', .018]
   ];
   const biomes = BIOME_ROWS.map((r, i) => ({
     id: r[0], zone: i + 1, name: r[1], mc: r[2], surface: r[3], edge: r[4],
@@ -83,7 +83,7 @@
   /* ---------------------------------------------------------------- 十區配置
      距離＝難度順序（規格表），方位以 36° 為底再各自抖動 ±5°，抖動後仍遞增，
      所以不會交叉，也能保證兩兩間距 ≥ 58（空地不會互相重疊）。 */
-  const ZONE_D = [130, 146, 160, 174, 187, 199, 210, 220, 229, 237];
+  const ZONE_D = [260, 292, 320, 348, 374, 398, 420, 440, 458, 474];   // 舊制的兩倍
   const ZONE_JUNCTION = 5;     // 城門大道接上環路的位置：第 6 區與第 7 區之間
   /* 內圈的群系會被城堡切掉一塊，權重調小讓面積跟外圈接近。 */
   const REGION_W = [.86, .90, .94, .97, .99, 1, 1, 1, 1, 1];
@@ -107,7 +107,7 @@
      諧波給不規則外形，再讓每一區附近外凸，保證「空地＋緩坡＋沙灘」一定在陸地上。 */
   const NEED = zones.map(zn => zn.distance + PAD + 18);
   function coastRadius(a) {
-    let r = RADIUS + 14 * Math.sin(a * 2.3 + .7) + 8 * Math.sin(a * 3.9 + 2.1) + 6 * Math.sin(a * 1.3 + 4.4);
+    let r = RADIUS + 28 * Math.sin(a * 2.3 + .7) + 16 * Math.sin(a * 3.9 + 2.1) + 12 * Math.sin(a * 1.3 + 4.4);
     for (let i = 0; i < zones.length; i++) {
       let d = Math.abs(a - zones[i].bearing);
       if (d > Math.PI) d = Math.PI * 2 - d;
@@ -123,8 +123,8 @@
      先把取樣點做域扭曲（domain warp）再比距離，邊界就會有機地互相咬合，而不是
      正圓或直線；高度則用前兩名的權重混合，交界不會出現跳崖。 */
   function regionBlend(x, z) {
-    const wx = x + (noise(x, z, 34, 701) - .5) * 52 + (noise(x, z, 13, 703) - .5) * 16;
-    const wz = z + (noise(x, z, 34, 702) - .5) * 52 + (noise(x, z, 13, 704) - .5) * 16;
+    const wx = x + (noise(x, z, 34, 701) - .5) * 104 + (noise(x, z, 13, 703) - .5) * 32;
+    const wz = z + (noise(x, z, 34, 702) - .5) * 104 + (noise(x, z, 13, 704) - .5) * 32;
     let best = -1, bestScore = Infinity;
     const score = [];
     for (let i = 0; i < biomes.length; i++) {
@@ -134,7 +134,7 @@
     }
     let wsum = 0, base = 0, relief = 0, scale = 0;
     for (let i = 0; i < biomes.length; i++) {
-      const w = Math.max(0, 1 - (score[i] - bestScore) / 46);
+      const w = Math.max(0, 1 - (score[i] - bestScore) / 92);
       if (w <= 0) continue;
       wsum += w; base += w * biomes[i].base; relief += w * biomes[i].relief; scale += w * biomes[i].scale;
     }
@@ -197,7 +197,7 @@
     }
     return out;
   }
-  const JUNCTION = [0, 118];
+  const JUNCTION = [0, 236];
   const loopControl = [];
   for (let i = 0; i < zones.length; i++) {
     loopControl.push(zones[i].approach);
@@ -207,7 +207,7 @@
     loopControl.push([Math.round(Math.sin(mid) * radius), Math.round(Math.cos(mid) * radius)]);
   }
   const loop = catmullClosed(loopControl, 2);
-  const causeway = resample([[0, 16], [0, 26], [SPAWN[0], SPAWN[1]], [0, 48], [0, 62], [0, GATE.z], [0, 92], [0, 104], JUNCTION], 2);
+  const causeway = resample([[0, 16], [0, 26], [SPAWN[0], SPAWN[1]], [0, 48], [0, 62], [0, GATE.z], [0, 92], [0, 110], [0, 170], JUNCTION], 2);
 
   /* ---------------------------------------------------------------- 網格
      先把地形算成固定網格，之後所有查詢（高度、可走、障礙）都只是讀表，模擬端每

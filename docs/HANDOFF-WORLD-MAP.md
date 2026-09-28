@@ -70,11 +70,12 @@ WorldMap = {
 ### 3.3 關鍵常數（改動前先看 `docs/WORLD-MAP-SPEC.md`）
 
 ```
-CELL=2  SPAN=320  NAV_HALF=288  RADIUS=252  ARENA_Y=4  PAD=30  ROAD_HALF=5
+CELL=2  SPAN=640  NAV_HALF=576  RADIUS=504  ARENA_Y=4  PAD=30  ROAD_HALF=5
+（2026-09-27：地圖長寬各放大兩倍，十區距離與道路節點同步 ×2；地形繪製分三層 LOD）
 PLATEAU=外牆+6  MOAT=外牆+16  CLEAR=外牆+20（同一個八邊形等距外推）→ [98,84] / [108,94] / [112,98]
 OUTER={x:92,z:78,cut:42,top:13}（八邊形：|x|+|z| = 92+78-42 = 128 是切角線）
 INNER={x:57,zMin:-50,zMax:36,top:17}  KEEP={x:10,zMin:-17,zMax:1,tower:4.2}
-GATE={x:0,z:78}  SPAWN=[0,32]  JUNCTION=[0,118]
+GATE={x:0,z:78}  SPAWN=[0,32]  JUNCTION=[0,236]
 MOAT_Y=2.2  OCEAN_Y=-1.4  SLOPE=1.35（坡度硬上限）
 ※ 2026-09-26 更新：外圈改成八邊形（切角閃開 zone 2 的競技場），兩圈間距與內牆到主堡都拉開；
    形狀只有一個來源 WorldMap.castle.dist(x,z)，導航的牆格／護城河／畫面方塊都讀它。

@@ -225,7 +225,7 @@
       disposeGroup(castle);const cast=global.buildCastle(hash(seed)),land=global.buildTerrain(hash(seed));
       for(const[name,rows]of Object.entries({...land.batches,...cast.batches})){
         const filtered=name==='courtyard'?rows.filter(b=>b[1]<4.4||(b[0]>-34&&b[0]<-26&&b[2]>54&&b[2]<63)):name==='nature'?rows.filter(b=>!Object.values(ENTRIES).some(p=>p[2]>45&&Math.abs(p[0]-b[0])<7&&Math.abs(p[2]-b[2])<6)):rows;
-        const blocks=filtered.map(b=>({x:b[0],y:b[1],z:b[2],sx:b[3],sy:b[4],sz:b[5],c:b[6],shade:b[7]}));makeInstances(blocks,castle,name,64);
+        const blocks=filtered.map(b=>({x:b[0],y:b[1],z:b[2],sx:b[3],sy:b[4],sz:b[5],c:b[6],shade:b[7]}));/* 分塊邊長跟著地形尺度走：地圖放大兩倍後仍用 64 格，draw call 會變四倍。 */makeInstances(blocks,castle,name,128);
       }
       // Presentation clipping belongs to these meshes, not the shared default material.
       castle.traverse(m=>{if(m.isMesh&&['outer','inner'].includes(m.name)){m.material=m.material.clone();m.userData.ownedMaterial=true;}});

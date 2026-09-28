@@ -301,8 +301,10 @@ check('移動規則：validStep 不會允許穿牆／掉下去', () => {
   };
 });
 
-/* ---------------------------------------------------------------- 11. 方塊預算 */
-check('預算：渲染格數與三角形', () => {
+/* ---------------------------------------------------------------- 11. 方塊預算
+   直接叫產生器跑一遍並數方塊，而不是用「每格三個方塊」估算——地圖改成三層 LOD
+   （近 2 格、中 4 格、遠 8 格）之後，估算會高估將近三倍。 */
+check('預算：真正產生的方塊數與三角形', () => {
   const R = W.navHalf || 270;
   let cells = 0, water = 0;
   for (let x = -R; x <= R; x += cell) for (let z = -R; z <= R; z += cell) {
@@ -310,9 +312,16 @@ check('預算：渲染格數與三角形', () => {
     cells++;
     if (W.blocked(x, z)) water++;
   }
-  const blocks = cells * 3;         // 表層 + 兩層地質帶（不含裝飾）
-  const tris = blocks * 12;         // 每塊 12 三角形
-  return { ok: blocks <= 200000, detail: `${cells} 格（擋格 ${water}）預估 ${blocks} 塊 / ${(tris / 1e6).toFixed(2)}M 三角形` };
+  const terrain = require('../js/terrain-geometry.js').buildTerrain('94721');
+  const castle = require('../js/castle-geometry.js').buildCastle(314159);
+  const count = b => Object.values(b).reduce((n, rows) => n + rows.length, 0);
+  const land = count(terrain.batches), built = count(castle.batches);
+  const blocks = land + built, tris = blocks * 12;
+  const budget = 400000;
+  return {
+    ok: blocks <= budget,
+    detail: `陸地 ${cells} 格（擋格 ${water}）→ 地形 ${land} 塊 ＋ 城堡 ${built} 塊 ＝ ${blocks} 塊 / ${(tris / 1e6).toFixed(2)}M 三角形（預算 ${budget}）`
+  };
 });
 
 /* ---------------------------------------------------------------- 輸出 */

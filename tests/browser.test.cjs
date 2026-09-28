@@ -389,7 +389,7 @@ test('open world: ten biome zones share one map and combat never swaps the scene
   assert.equal(base.map.biomes,10,'ten biomes cover the world');
   assert.equal(base.map.groups,10,'all ten zone groups are built at once');
   const distances=base.map.positions.map(p=>Math.hypot(...p));
-  assert.ok(distances.every((d,i)=>d>120&&d<250&&(!i||d>distances[i-1])),'zones advance outward in difficulty order');
+  assert.ok(distances.every((d,i)=>d>250&&d<500&&(!i||d>distances[i-1])),'zones advance outward in difficulty order');
   const gaps=base.map.positions.map((p,i)=>{const n=base.map.positions[(i+1)%base.map.positions.length];return Math.hypot(n[0]-p[0],n[1]-p[1]);});
   assert.ok(Math.min(...gaps)>=60,'neighbouring zones do not overlap');
   assert.ok(base.worldBlocks>60000,`the whole world is built at once (${base.worldBlocks} static blocks)`);

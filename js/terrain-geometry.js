@@ -26,12 +26,19 @@ function buildTerrain(seed) {
     if (wet) add('water', cx, top - .1, cz, size + .005, .2, size + .005, surface, shade);
     else add('terrain', cx, top - .21, cz, size, .42, size, surface, shade);
   }
-  const half = W.navHalf;
-  // Fine geometry around the playable center; distant terrain uses four-unit tiles.
-  for (let x = -175; x <= 175; x += 2) for (let z = -175; z <= 175; z += 2) column(x, z, 2);
-  for (let x = -half + 2; x < half; x += 4) for (let z = -half + 2; z < half; z += 4) {
-    if (Math.abs(x) < 178 && Math.abs(z) < 178) continue;
+  /* 三層 LOD：城堡周邊 2 格、中距離 4 格、外圈 8 格。地圖放大兩倍之後，外圈如果
+     還用 4 格，方塊數會多一倍；遠區只佔畫面幾十像素，8 格看不出差別。 */
+  const half = W.navHalf, NEAR = 175, MID = 400;
+  for (let x = -NEAR; x <= NEAR; x += 2) for (let z = -NEAR; z <= NEAR; z += 2) column(x, z, 2);
+  for (let x = -MID; x <= MID; x += 4) for (let z = -MID; z <= MID; z += 4) {
+    /* 只跳過「整塊都在細格範圍內」的中格：臨界那一格要留著，否則兩層之間會露出
+       一條 2 格寬的縫（遠看就是一條白色直線）。 */
+    if (Math.abs(x) < NEAR - 1 && Math.abs(z) < NEAR - 1) continue;
     column(x, z, 4);
+  }
+  for (let x = -half + 4; x <= half; x += 8) for (let z = -half + 4; z <= half; z += 8) {
+    if (Math.abs(x) <= MID && Math.abs(z) <= MID) continue;
+    column(x, z, 8);
   }
   // The causeway crosses the moat on the same y=4 plane as both gates.
   const gateZ = W.castle.gate.z;
