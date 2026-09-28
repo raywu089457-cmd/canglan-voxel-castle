@@ -147,7 +147,7 @@ test('requested quests render their real state and the loader serves every asset
   }
   await page.screenshot({path:path.join(SHOT,'desktop-quests.png')});
   const missing=await page.evaluate(async()=>{
-    const urls=['style.css','vendor/three.min.js','js/castle-geometry.js','js/terrain-geometry.js','js/game-data.js','js/game-core.js','js/game-extensions.js','js/icons.js','js/world.js','js/ui.js'];
+    const urls=['style.css','vendor/three.min.js','js/castle-geometry.js','js/terrain-geometry.js','js/game-data.js','js/game-core.js','js/game-extensions.js','js/icons.js','js/world.js','js/ui.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon-180.png'];
     const bad=[];
     for(const url of urls){const res=await fetch(url);if(!res.ok)bad.push(url+':'+res.status);}
     return bad;
@@ -319,6 +319,41 @@ test('responsive layouts 1440/768/390/320 keep the game usable without overflow'
   }
   await page.setViewportSize({width:1440,height:900});
   assert.deepEqual(problems,[],problems.join(' | '));
+}));
+
+test('touch and app shell: no browser default gestures, installable as a full-screen app',check('touch',async()=>{
+  const cfg=await page.evaluate(()=>({
+    viewport:document.querySelector('meta[name=viewport]')?.content||'',
+    manifest:document.querySelector('link[rel=manifest]')?.getAttribute('href')||'',
+    appleIcon:document.querySelector('link[rel=apple-touch-icon]')?.getAttribute('href')||'',
+    webApp:document.querySelector('meta[name=apple-mobile-web-app-capable]')?.content||'',
+    theme:document.querySelector('meta[name=theme-color]')?.content||'',
+    html:getComputedStyle(document.documentElement),
+    body:getComputedStyle(document.body),
+    canvas:getComputedStyle(document.querySelector('#world')),
+    panel:getComputedStyle(document.querySelector('#panel')),
+    tools:getComputedStyle(document.querySelector('.camera-tools'))
+  }));
+  assert.match(cfg.viewport,/user-scalable=no/, '縮放由遊戲自己控制，不用瀏覽器預設手勢');
+  assert.match(cfg.viewport,/viewport-fit=cover/, '全螢幕時沿用安全區域');
+  assert.equal(cfg.webApp,'yes','加到主畫面時用全螢幕（沒有瀏覽器手勢）');
+  assert.equal(cfg.theme,'#4a2f1f','狀態列顏色跟著暖色主題');
+  assert.equal(cfg.body.overscrollBehavior,'none','沒有下拉重新整理／橡皮筋');
+  assert.equal(cfg.body.userSelect,'none','畫面不會被長按選字');
+  assert.equal(cfg.html.touchAction,'manipulation','沒有雙擊縮放');
+  assert.equal(cfg.canvas.touchAction,'none','3D 畫面的拖曳／雙指縮放全部交給遊戲');
+  assert.equal(cfg.tools.touchAction,'none','浮動控制列也不吃瀏覽器手勢');
+  assert.equal(cfg.panel.touchAction,'pan-x pan-y','面板仍可上下滑動（含橫向分頁列）');
+  assert.ok(cfg.manifest&&cfg.appleIcon,'有 manifest 與 apple-touch-icon');
+  const files=await page.evaluate(async list=>{
+    const bad=[];
+    for(const url of list){const res=await fetch(url);if(!res.ok)bad.push(url+':'+res.status);}
+    const man=await (await fetch('manifest.webmanifest')).json();
+    return {bad,name:man.name,display:man.display,icons:(man.icons||[]).length};
+  },['manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon-180.png']);
+  assert.deepEqual(files.bad,[],'manifest 與圖示都載得到');
+  assert.equal(files.display,'standalone','安裝後以獨立視窗執行');
+  assert.ok(files.icons>=2&&files.name.includes('蒼嵐堡'),'manifest 內容完整');
 }));
 
 test('accessibility basics: names, landmarks, live region, focus and escape',check('a11y',async()=>{

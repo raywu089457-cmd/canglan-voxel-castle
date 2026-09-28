@@ -44,6 +44,8 @@ npm start
 | 深淵入口 | 第 9 區「深淵裂谷」裡有一道實體裂隙之門，城堡內的深淵傳送門也還在 |
 | 鍵盤介面 | Tab 移動焦點，Enter／空白鍵操作按鈕，Esc 關閉確認視窗 |
 | 光照與聲音 | 設定中的日夜光照、日夜循環及各別音效／音樂音量 |
+| 手機手勢 | 畫面鎖定瀏覽器預設手勢（雙擊縮放、下拉重新整理、長按選字全部關掉）；3D 畫面用單指拖曳平移、雙指縮放，面板照常上下滑 |
+| 加到主畫面 | 用手機瀏覽器開線上版 → 選「加到主畫面」，之後就是全螢幕執行（沒有網址列與上一頁手勢）。App 圖示由 `node tools/make-icons.cjs` 產生 |
 | 畫質 | 設定中的「畫質」：**自動**（手機降解析度、陰影較小）、**高**（pixel ratio 2、陰影 2048）、**低（省電）**（pixel ratio 1、關閉陰影）；立即生效，不用重載 |
 
 鏡頭與日照不影響遊戲亂數、戰鬥收益或日週重置。戰鬥倍率不縮短 20 秒休整與遠征的真實時間。
@@ -84,6 +86,7 @@ npm run test:browser
 node tools/world-audit.cjs
 node tools/content-audit.cjs
 node tools/perf-probe.cjs --headed   # 效能：draw call／三角形／每幀 JS（--headed 才會用真 GPU）
+node tools/make-icons.cjs             # 重新產生 PWA／主畫面圖示
 ```
 
 `npm test` 執行核心與擴展規則測試。瀏覽器測試需要 Playwright 與 Chrome；目前設定位置見 `tests/browser.test.cjs`，其他電腦需調整可執行路徑。`tools/free-route.cjs` 是耗時較長的自動成長策略模擬，報告保存在 `docs/free-route.json`。
