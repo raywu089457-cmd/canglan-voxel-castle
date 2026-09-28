@@ -40,7 +40,7 @@
      外圈是八邊形：四邊 ±92／±78，四角各向内切 42。切角不是裝飾，是為了讓兩圈都能
      往外長——zone 2 的競技場正好壓在城堡西南方的對角線上，方形外角一長大就會撞
      進它的空地。護城河、台地與城堡特區都是這個八邊形等距外推。 */
-  const OUTER = { x: 92, z: 78, cut: 42, top: 18 };
+  const OUTER = { x: 92, z: 78, cut: 42, top: 13 };   // 牆體高 9（原本 14，降 1/3）
   const CHAMFER = OUTER.x + OUTER.z - OUTER.cut;   // 切角線：|x| + |z| = CHAMFER
   /* 八邊形的向外距離：正值在城外，負值在城內。凸多邊形取各邊距離的最大值即為精確值。 */
   function castleDist(x, z) {
@@ -50,7 +50,7 @@
   const PLATEAU = [OUTER.x + PLATEAU_D, OUTER.z + PLATEAU_D];  // 城堡台地（全平地）
   const MOAT = [OUTER.x + MOAT_D, OUTER.z + MOAT_D];           // 護城河外緣
   const CLEAR = [OUTER.x + CLEAR_D, OUTER.z + CLEAR_D];        // 城堡特區：不屬於任何群系
-  const INNER = { x: 57, zMin: -50, zMax: 36, top: 24 };
+  const INNER = { x: 57, zMin: -50, zMax: 36, top: 17 };   // 牆體高 13（原本 20，降 1/3）
   /* 主堡的佔地（含四角圓塔）：審查腳本用它算「內圈到主堡」的間距，不必重複寫數字。 */
   const KEEP = { x: 10, zMin: -17, zMax: 1, tower: 4.2 };
   const GATE = { x: 0, z: OUTER.z };

@@ -72,8 +72,8 @@ WorldMap = {
 ```
 CELL=2  SPAN=320  NAV_HALF=288  RADIUS=252  ARENA_Y=4  PAD=30  ROAD_HALF=5
 PLATEAU=外牆+6  MOAT=外牆+16  CLEAR=外牆+20（同一個八邊形等距外推）→ [98,84] / [108,94] / [112,98]
-OUTER={x:92,z:78,cut:42,top:18}（八邊形：|x|+|z| = 92+78-42 = 128 是切角線）
-INNER={x:57,zMin:-50,zMax:36,top:24}  KEEP={x:10,zMin:-17,zMax:1,tower:4.2}
+OUTER={x:92,z:78,cut:42,top:13}（八邊形：|x|+|z| = 92+78-42 = 128 是切角線）
+INNER={x:57,zMin:-50,zMax:36,top:17}  KEEP={x:10,zMin:-17,zMax:1,tower:4.2}
 GATE={x:0,z:78}  SPAWN=[0,32]  JUNCTION=[0,118]
 MOAT_Y=2.2  OCEAN_Y=-1.4  SLOPE=1.35（坡度硬上限）
 ※ 2026-09-26 更新：外圈改成八邊形（切角閃開 zone 2 的競技場），兩圈間距與內牆到主堡都拉開；

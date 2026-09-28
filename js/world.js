@@ -212,7 +212,7 @@
     const selectRing=new T.Group();for(let i=0;i<4;i++){const bar=new T.Mesh(unit,outlineMaterial);bar.scale.set(i%2? .17:7.6,.14,i%2?7.6:.17);bar.position.set(i===1?3.8:i===3?-3.8:0,0,i===0?3.8:i===2?-3.8:0);selectRing.add(bar);}scene.add(selectRing);selectRing.visible=false;
     const dummy=new T.Object3D(),matrix=new T.Matrix4(),color=new T.Color(),raycaster=new T.Raycaster(),pointer=new T.Vector2(),proxies=[],actors=[],fx=[],listeners=[];
     const orbit={theta:.55,phi:.88,size:78,target:new T.Vector3(0,8,4)};
-    const presets={overview:{theta:.55,phi:.88,size:132,target:[0,8,6]},top:{theta:0,phi:.07,size:120,target:[0,4,0]},gate:{theta:.1,phi:1.13,size:36,target:[0,11,78]},courtyard:{theta:.18,phi:.44,size:74,target:[0,4,58]},keep:{theta:.65,phi:.82,size:29,target:[0,25,-8]},ring:{theta:0,phi:.34,size:320,target:[0,4,0]}};
+    const presets={overview:{theta:.55,phi:.88,size:132,target:[0,8,6]},top:{theta:0,phi:.07,size:120,target:[0,4,0]},gate:{theta:.1,phi:1.13,size:36,target:[0,8,78]},courtyard:{theta:.18,phi:.44,size:74,target:[0,4,58]},keep:{theta:.65,phi:.82,size:29,target:[0,25,-8]},ring:{theta:0,phi:.34,size:320,target:[0,4,0]}};
     function on(el,type,fn,opts){el.addEventListener(type,fn,opts);listeners.push(()=>el.removeEventListener(type,fn,opts));}
     function disposeGroup(group){while(group.children.length){const child=group.children.pop();child.traverse(obj=>{if(obj.isInstancedMesh)obj.dispose();if(obj.userData.ownedGeometry)obj.geometry.dispose();if(obj.userData.ownedMaterial)obj.material.dispose();});child.parent=null;}}
     function makeInstances(blocks,parent,name='blocks',chunkSize=0){
