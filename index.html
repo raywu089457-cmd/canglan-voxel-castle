@@ -19,40 +19,49 @@
 </head>
 <body>
   <div id="app">
-    <header class="topbar">
-      <button class="brand" data-nav="castle" aria-label="返回蒼嵐堡"><img data-icon="castle" alt=""><span>蒼嵐堡<small>獵人公會</small></span></button>
-      <div id="resource-bar" class="resource-bar" aria-label="王國資源"></div>
-      <button id="quest-ribbon" class="quest-ribbon" data-nav="quests" aria-label="目前任務"></button>
-      <div class="top-actions">
+    <!-- 全螢幕大地圖：地圖就是主畫面，功能頁是浮在上面的彈窗 -->
+    <main class="world-pane" aria-label="體素城堡世界">
+      <canvas id="world" aria-label="可平移、縮放及環繞檢視的體素城堡，所有功能也可從下方選單開啟。"></canvas>
+      <div id="world-labels" class="world-labels"></div>
+      <div class="world-caption"><span id="world-eyebrow" class="eyebrow">王國 LV.1</span><h1 id="world-title">蒼嵐堡</h1><span id="world-subtitle">城門已開，冒險從這裡開始。</span></div>
+      <div id="scene-badge" class="scene-badge"></div>
+      <aside id="stat-ledger" class="stat-ledger" aria-label="王國概況"></aside>
+      <div id="battle-overlay" class="battle-overlay" hidden></div>
+      <div id="world-message" class="world-message" role="status">正在打開城門…</div>
+      <div id="world-selection" class="world-selection" hidden></div>
+      <div class="world-footer"><span id="world-hint">拖曳平移 · 滾輪縮放 · 點擊建築</span><span id="clock-display"></span></div>
+    </main>
+
+    <header class="hud" aria-label="王國資訊">
+      <div class="hud-group">
+        <button class="brand hud-chip" data-nav="castle" aria-label="返回蒼嵐堡"><img data-icon="castle" alt=""><span>蒼嵐堡<small>獵人公會</small></span></button>
+        <div id="resource-bar" class="resource-bar hud-chip" aria-label="王國資源"></div>
+      </div>
+      <div class="hud-group hud-right">
+        <button id="quest-ribbon" class="quest-ribbon" data-nav="quests" aria-label="目前任務"></button>
         <button id="save-indicator" class="save-indicator" aria-label="儲存進度">已保存</button>
         <button class="icon-button top-settings" data-nav="settings" aria-label="設定與存檔">⚙</button>
       </div>
     </header>
-    <nav id="navigation" class="navigation" aria-label="主要導覽"></nav>
-    <main class="main-layout">
-      <section class="world-pane" aria-label="體素城堡世界">
-        <canvas id="world" aria-label="可平移、縮放及環繞檢視的體素城堡，所有功能也可從旁邊的選單開啟。"></canvas>
-        <div id="world-labels" class="world-labels"></div>
-        <div class="world-caption"><span id="world-eyebrow" class="eyebrow">王國 LV.1</span><h1 id="world-title">蒼嵐堡</h1><span id="world-subtitle">城門已開，冒險從這裡開始。</span></div>
-        <div id="scene-badge" class="scene-badge"></div>
-        <aside id="stat-ledger" class="stat-ledger" aria-label="王國概況"></aside>
-        <div id="battle-overlay" class="battle-overlay" hidden></div>
-        <div id="world-message" class="world-message" role="status">正在打開城門…</div>
-        <div id="world-selection" class="world-selection" hidden></div>
-        <div class="camera-tools" aria-label="鏡頭控制">
-          <button class="camera-button" data-camera="overview" aria-label="城堡全景" title="城堡全景">全景</button>
-          <button class="camera-button" data-camera="top" aria-label="防線俯視" title="防線俯視">俯視</button>
-          <button class="camera-button" data-world="zoom-in" aria-label="放大">＋</button>
-          <button class="camera-button" data-world="zoom-out" aria-label="縮小">−</button>
-          <button class="camera-button" data-world="inspect" aria-pressed="false">環繞</button>
-          <button class="camera-button" data-world="cut" aria-pressed="false">剖視</button>
-          <button class="camera-button" data-world="map" aria-pressed="false">世界地圖</button>
-        </div>
-        <div id="party-dock" class="party-dock"></div>
-        <div class="world-footer"><span id="world-hint">拖曳平移 · 滾輪縮放 · 點擊建築</span><span id="clock-display"></span></div>
-      </section>
-      <aside id="panel" class="panel" aria-label="遊戲操作面板"><div class="panel-heading"><span class="eyebrow">獵人公會</span><h2>準備啟程</h2></div></aside>
-    </main>
+
+    <div class="bottom-hud">
+      <div class="camera-tools" aria-label="鏡頭控制">
+        <button class="camera-button" data-camera="overview" aria-label="城堡全景" title="城堡全景">全景</button>
+        <button class="camera-button" data-camera="top" aria-label="防線俯視" title="防線俯視">俯視</button>
+        <button class="camera-button" data-world="zoom-in" aria-label="放大">＋</button>
+        <button class="camera-button" data-world="zoom-out" aria-label="縮小">−</button>
+        <button class="camera-button" data-world="inspect" aria-pressed="false">環繞</button>
+        <button class="camera-button" data-world="cut" aria-pressed="false">剖視</button>
+        <button class="camera-button" data-world="map" aria-pressed="false">世界地圖</button>
+      </div>
+      <div id="party-dock" class="party-dock"></div>
+      <nav id="navigation" class="navigation" aria-label="主要導覽"></nav>
+    </div>
+
+    <div id="panel-overlay" class="panel-overlay" hidden>
+      <button id="panel-close" class="panel-close" aria-label="關閉面板">✕</button>
+      <aside id="panel" class="panel" role="dialog" aria-modal="true" aria-label="遊戲操作面板"></aside>
+    </div>
   </div>
   <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
   <dialog id="confirm-dialog" aria-labelledby="dialog-title"><form method="dialog"><div id="dialog-content"></div><div class="dialog-actions"><button value="cancel" class="button">取消</button><button value="confirm" class="button primary">確認</button></div></form></dialog>

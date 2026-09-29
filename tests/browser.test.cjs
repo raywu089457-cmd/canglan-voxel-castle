@@ -41,6 +41,8 @@ async function reset(seed){
     globalThis.GameApp.replaceState(globalThis.GameCore.create(s));
   },seed);
   await page.evaluate(()=>globalThis.GameApp.navigate('castle'));
+  /* 功能頁現在是浮在地圖上的彈窗；每個測試都從「只有大地圖」的乾淨狀態開始。 */
+  await page.evaluate(()=>document.querySelector('#panel-close')?.click());
   await page.waitForTimeout(120);
 }
 
@@ -319,6 +321,30 @@ test('responsive layouts 1440/768/390/320 keep the game usable without overflow'
   }
   await page.setViewportSize({width:1440,height:900});
   assert.deepEqual(problems,[],problems.join(' | '));
+}));
+
+test('big map main screen: the world fills the window and pages open as overlays',check('bigmap',async()=>{
+  await reset(3);
+  const base=await page.evaluate(()=>{
+    const wp=document.querySelector('.world-pane').getBoundingClientRect(),cv=document.querySelector('#world');
+    return {win:[innerWidth,innerHeight],world:[Math.round(wp.width),Math.round(wp.height)],canvas:[cv.clientWidth,cv.clientHeight],
+      hidden:document.querySelector('#panel-overlay').hidden,sameParent:document.querySelector('#panel-overlay').parentElement.id};
+  });
+  assert.ok(base.world[0]>=base.win[0]-1&&base.world[1]>=base.win[1]-1,`3D 地圖佔滿整個視窗（${base.world} vs ${base.win}）`);
+  assert.ok(base.canvas[0]>=base.win[0]-1&&base.canvas[1]>=base.win[1]-1,'canvas 跟著鋪滿');
+  assert.equal(base.hidden,true,'主畫面預設只有地圖，功能頁是收起來的');
+  await tap('.nav-button[data-nav="hunt"]');
+  await page.waitForTimeout(160);
+  const open=await page.evaluate(()=>{
+    const overlay=document.querySelector('#panel-overlay'),panel=document.querySelector('#panel').getBoundingClientRect();
+    return {hidden:overlay.hidden,position:getComputedStyle(overlay).position,panelTop:Math.round(panel.top),panelW:Math.round(panel.width),scroll:window.scrollY};
+  });
+  assert.equal(open.hidden,false,'點導覽會把功能頁叫出來');
+  assert.equal(open.position,'absolute','功能頁是浮在地圖上的彈窗，不是跟地圖拼接');
+  assert.ok(open.panelTop>0&&open.scroll===0,'彈窗浮在上面，頁面本身不滾動');
+  await tap('#panel-close');
+  await page.waitForTimeout(160);
+  assert.ok(await page.evaluate(()=>document.querySelector('#panel-overlay').hidden),'✕ 收起功能頁回到大地圖');
 }));
 
 test('touch and app shell: no browser default gestures, installable as a full-screen app',check('touch',async()=>{

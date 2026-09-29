@@ -32,7 +32,12 @@ function save(){if(saveProblem)return false;try{const text=JSON.stringify(state)
 function act(type,payload={},quiet=false){try{const result=C.dispatch(state,type,payload,Date.now());if(!quiet)toast(result.message,result.ok);if(result.ok){tone();dirty=true;syncWorld();save();}else tone(false);render(true);return result;}catch(e){console.error(e);toast('操作未完成：'+e.message,false);return {ok:false,message:e.message};}}
 function confirm(title,body,callback){const dialog=$('#confirm-dialog');$('#dialog-content').innerHTML=`<h2 id="dialog-title">${esc(title)}</h2>${body}`;dialogCallback=callback;dialog.returnValue='';dialog.showModal();}
 $('#confirm-dialog').addEventListener('close',()=>{const cb=dialogCallback;dialogCallback=null;if($('#confirm-dialog').returnValue==='confirm'&&cb)cb($('#dialog-content'));});
-function go(to){page=to;sub='main';selectedBuilding=null;if(to!=='heroes')selectedHero=null;if(to!=='equipment')selectedItem=null;worldView=to==='hunt'?'battle':'castle';world?.setView(worldView);$('#panel').scrollTop=0;dirty=true;render(true);}
+/* 功能頁是浮在 3D 地圖上的彈窗：導覽列、建築標記、世界標記都會把它打開；
+   標題列右上角的 ✕、點背景或 Esc 會關掉，回到「大地圖主畫面」。 */
+function openPanel(){const overlay=$('#panel-overlay');if(!overlay||!overlay.hidden)return;overlay.hidden=false;document.body.classList.add('panel-open');dirty=true;const focus=$('#panel-close');if(focus)try{focus.focus({preventScroll:true});}catch(_){}}
+function closePanel(){const overlay=$('#panel-overlay');if(!overlay||overlay.hidden)return;overlay.hidden=true;document.body.classList.remove('panel-open');const active=document.querySelector('.nav-button.active');if(active)try{active.focus({preventScroll:true});}catch(_){}}
+function panelOpen(){const overlay=$('#panel-overlay');return !!overlay&&!overlay.hidden;}
+function go(to){page=to;sub='main';selectedBuilding=null;if(to!=='heroes')selectedHero=null;if(to!=='equipment')selectedItem=null;worldView=to==='hunt'?'battle':'castle';world?.setView(worldView);$('#panel').scrollTop=0;dirty=true;render(true);openPanel();}
 function syncWorld(){if(world)world.sync(state,{heroStats:C.heroStats,team:C.team,teamPower:C.teamPower});}
 function paint(selector,html){const el=$(selector);if(el.innerHTML!==html)el.innerHTML=html;}
 function renderHUD(){
@@ -213,11 +218,12 @@ case'newGame':confirm('建立新公會',`<p>目前公會將被替換。請先匯
 }}
 function download(text,name){const url=URL.createObjectURL(new Blob([text],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 document.addEventListener('click',event=>{const el=event.target.closest('button');if(!el||el.disabled)return;const p=el.dataset.payload?JSON.parse(el.dataset.payload):{};
+if(el.id==='panel-close'||el.id==='panel-overlay'){closePanel();return;}
 if(el.dataset.nav){go(el.dataset.nav);return;}
-if(el.dataset.hero){selectedHero=el.dataset.hero;page='heroes';render(true);return;}
-if(el.dataset.item){selectedItem=el.dataset.item;page='equipment';render(true);return;}
+if(el.dataset.hero){selectedHero=el.dataset.hero;page='heroes';render(true);openPanel();return;}
+if(el.dataset.item){selectedItem=el.dataset.item;page='equipment';render(true);openPanel();return;}
 if(el.dataset.zone){const id=el.dataset.zone;selectedWorld({kind:id==='abyss'?'abyss':'zone',id});return;}
-if(el.dataset.building){selectedBuilding=el.dataset.building;page='building';worldView='castle';world?.setView('castle');world?.focus(selectedBuilding);render(true);return;}
+if(el.dataset.building){selectedBuilding=el.dataset.building;page='building';worldView='castle';world?.setView('castle');world?.focus(selectedBuilding);render(true);openPanel();return;}
 if(el.dataset.action){act(el.dataset.action,p);return;}
 if(el.dataset.ui){doUI(el.dataset.ui,p);return;}
 if(el.dataset.camera){world?.setCamera(el.dataset.camera);return;}
@@ -244,7 +250,7 @@ function unlockAudio(){try{audioContext??=new (window.AudioContext||window.webki
 ['pointerdown','keydown','touchstart'].forEach(type=>document.addEventListener(type,unlockAudio,{once:true,passive:true}));
 function ambient(now){if(!audioContext||audioContext.state!=='running'||!prefs.music||document.hidden||now<nextMusic)return;nextMusic=now+6500;try{[130.81,196,261.63,329.63].forEach((freq,i)=>{const osc=audioContext.createOscillator(),gain=audioContext.createGain(),at=audioContext.currentTime+i*.6;osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(Number(prefs.music)*.025,at+.8);gain.gain.exponentialRampToValueAtTime(.0001,at+5);osc.connect(gain).connect(audioContext.destination);osc.start(at);osc.stop(at+5.1);});}catch(_){} }
 function applyPrefs(){document.body.classList.toggle('reduce-motion',!!prefs.reduced);world?.setQuality(prefs.quality);world?.setHour(Number(prefs.hour));world?.setCutaway(!!prefs.cut);world?.setOrbit(!!prefs.orbit&&!prefs.reduced);if(prefs.music&&audioContext){try{audioContext.resume();}catch(_){}}}
-function selectedWorld(item){if(item.kind==='building'){page='building';selectedBuilding=item.id;}else if(item.kind==='hero'){if(item.visitor)page='wanderers';else {page='heroes';selectedHero=item.id;}}else if(item.kind==='zone'){if(Number(item.id)>state.progress.maxZone){toast('需先通過前一區首領',false);return;}act('target',{zone:Number(item.id),stage:1});go('hunt');return;}else if(item.kind==='abyss'){page='challenges';}else if(item.kind==='challenge'){const routes={commission:'expeditions',guild:'guild',quests:'quests',collections:'collections'};page=routes[item.id]||'challenges';}render(true);}
+function selectedWorld(item){if(item.kind==='building'){page='building';selectedBuilding=item.id;}else if(item.kind==='hero'){if(item.visitor)page='wanderers';else {page='heroes';selectedHero=item.id;}}else if(item.kind==='zone'){if(Number(item.id)>state.progress.maxZone){toast('需先通過前一區首領',false);return;}act('target',{zone:Number(item.id),stage:1});go('hunt');return;}else if(item.kind==='abyss'){page='challenges';}else if(item.kind==='challenge'){const routes={commission:'expeditions',guild:'guild',quests:'quests',collections:'collections'};page=routes[item.id]||'challenges';}render(true);openPanel();}
 try{world=g.GameWorld.create({canvas:$('#world'),onSelect:selectedWorld,onError:message=>{const el=$('#world-message');el.hidden=false;el.textContent='3D 場景無法啟動：'+message+'。仍可透過選單進行遊戲。';}});syncWorld();applyPrefs();$('#world-message').hidden=true;}catch(error){console.error(error);$('#world-message').textContent='3D 場景未能啟動。可以繼續使用右側選單。';}
 document.querySelectorAll('[data-icon]').forEach(el=>{el.src=I.icon(el.dataset.icon);});
 let lastTime=performance.now(),lastReal=Date.now(),simAt=Date.now();
@@ -263,6 +269,11 @@ if(!document.hidden){
   if(now-lastHud>350){render();lastHud=now;}
   if(now-lastSave>5000){save();lastSave=now;}ambient(now);}
 lastReal=real;lastTime=now;raf=requestAnimationFrame(frame);}
+document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape')return;
+  if($('#confirm-dialog')?.open)return;          // 原生確認視窗優先
+  if(panelOpen()){event.preventDefault();closePanel();}
+});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){save();audioContext?.suspend();}else{const seconds=(Date.now()-state.lastSeen)/1000;if(seconds>2){const summary=C.offline(state,Date.now());if(seconds>90)toast('歡迎回來！已結算 '+duration(seconds)+' 的離線進度。');save();dirty=true;}lastReal=Date.now();simAt=Date.now();if(prefs.music)audioContext?.resume();}});
 window.addEventListener('pagehide',()=>save());
 render(true);raf=requestAnimationFrame(frame);
